@@ -1,1 +1,0 @@
-parallel -a ./instance_ips ./ll_remote_setup.sh
