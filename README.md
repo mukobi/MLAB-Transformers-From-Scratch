@@ -1,0 +1,27 @@
+
+# TODO
+- [ ] Delete more non-transformers stuff
+- [ ] Delete duplicated transformer solution file
+- [ ] Organize files to be much simpler (BERT and GPT2 folders)
+- [ ] Run testing code for BERT
+- [ ] Refactor testing code into pytest or unittest
+- [ ] Create starter file for you with empty stubs
+- [ ] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
+- [ ] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
+    - [ ] Say it should be about 200 (or 150-300) lines of code
+- [ ] Update this main readme
+    - [ ] Suggest learning http://einops.rocks/ via https://iclr.cc/virtual/2022/oral/6603 or http://einops.rocks/pytorch-examples.html
+    - [ ] Attribution
+    - [ ] Known issues
+    - [ ] Description of what this is
+    - [ ] Prerequisites
+    - [ ] Further exploration
+- [ ] Include config or hyperparams or code to load weights
+- [ ] Change TODO into a changelist to describe differences from upstream
+- [ ] Do BERT
+- [ ] Clean up GPT-2 folder (might not need to do much)
+- [ ] Run testing code for GPT-2
+- [ ] Refactor testing code into pytest or unittest
+- [ ] Create starter file for you with empty stubs
+- [ ] Make testing code call starter code and compare to HF GPT-2 and maybe MLAB solution
+- [ ] Write GPT-2 readme (can say similar to the BERT folder or use similar content as that)
