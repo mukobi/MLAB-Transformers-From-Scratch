@@ -1,5 +1,31 @@
 # MLAB Transformers From Scratch
 
+TODO short description
+
+## Introduction
+
+TODO
+- This is mostly based off Week 2: Implementing Transformers from Redwood Research's Machine Learning for Alignment Bootcamp (MLAB). The code in this repository is mostly cleaned up code from [the original MLAB repository](https://github.com/redwoodresearch/mlab).
+
+### Prerequisites
+
+## Getting Started
+
+### Installation
+
+1. Install Python 3.6+.
+2. Create a virtual environment with venv or Anaconda and activate it if you like to work with virtual environments.
+3. [Install PyTorch](https://pytorch.org/get-started/locally/) with the appropriate configuration for your environment.
+4. Run `pip install -r requirements.txt` to install the other requirements for this repository.
+
+### Testing
+
+TODO
+
+### Implementing Transformers
+
+TODO
+
 ## Week 2: Implementing transformers
 Resources:
 - https://huggingface.co/course/chapter1
@@ -31,9 +57,9 @@ Resources:
 - [X] Delete more non-transformers or non-essential stuff
 - [X] Delete duplicated BERT solution file
 - [X] Organize files to be much simpler (BERT and GPT2 folders)
-- [ ] Redo requirements by creating a fresh venv
+- [X] Redo requirements by creating a fresh venv
 - [ ] Run testing code for BERT
-- [ ] Refactor testing code into pytest or unittest
+- [ ] Refactor testing code into unittest
 - [ ] Create starter file for you with empty stubs
 - [ ] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
 - [ ] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
@@ -45,12 +71,16 @@ Resources:
     - [ ] Description of what this is
     - [ ] Prerequisites
     - [ ] Further exploration
+    - [ ] Testing
+    - [ ] Start implementing with link to each sub-readme
 - [ ] Include config or hyperparams or code to load weights
 - [ ] Change TODO into a changelist to describe differences from upstream
 - [ ] Do BERT
+- [ ] Remove commented requirements now that requirements are verified
+- [ ] Write BERT readme
 - [ ] Clean up GPT-2 folder (might not need to do much)
 - [ ] Run testing code for GPT-2
-- [ ] Refactor testing code into pytest or unittest
+- [ ] Refactor testing code into unittest
 - [ ] Create starter file for you with empty stubs
 - [ ] Make testing code call starter code and compare to HF GPT-2 and maybe MLAB solution
 - [ ] Write GPT-2 readme (can say similar to the BERT folder or use similar content as that)
