@@ -1,6 +1,6 @@
 import torch as t
 import days.bert as bert
-from test_all import allclose
+from tests.test_all import allclose
 import torch.nn as nn
 import torch.nn.functional as F
 import days.modules as reference

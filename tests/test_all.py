@@ -43,7 +43,7 @@ import numpy as np
 import days.modules as modules
 from transformers.utils.dummy_sentencepiece_objects import PegasusTokenizer
 import days.bert as bert
-import days.gpt2 as gpt2
+import days.gpt_2_from_scratch.gpt2 as gpt2
 import days.old_resnet as old_resnet
 import pytest
 import transformers

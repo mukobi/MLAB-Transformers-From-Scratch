@@ -1,8 +1,36 @@
+# MLAB Transformers From Scratch
 
-# TODO
+## Week 2: Implementing transformers
+Resources:
+- https://huggingface.co/course/chapter1
+- https://nostalgebraist.tumblr.com/post/185326092369/1-classic-fully-connected-neural-networks-these
+- https://nostalgebraist.tumblr.com/post/188730918209/huh-the-alphastar-paper-is-finally-up-linked-in
+- GPT-2 paper.
+- Implement GPT-2. Check that it matches. Check that it performs similarly if you drop it in as a replacement in a HF training loop.
+	- https://github.com/openai/gpt-2/blob/master/src/model.py
+- Implement BERT. Check that it does the same thing as HF implementation, including gradients.
+	- https://github.com/huggingface/transformers/blob/5b317f7ea4fcd012d537f0a1e3c73aef82f9b70a/examples/research_projects/movement-pruning/emmental/modeling_bert_masked.py
+	- Hmm. This is kind of a lot of code. The main part that is hard is BertSelfAttention.
+	- Shorter implementation: https://github.com/codertimo/BERT-pytorch
+- DeBERTa.
+	- maybe we just get them to implement the key smart parts, rather than trying to get all the details of hooking things together correct.
+- BYO Tokenizer. The key subword tokenizing function is [here](https://github.com/huggingface/transformers/blob/5b317f7ea4fcd012d537f0a1e3c73aef82f9b70a/src/transformers/models/bert/tokenization_bert.py#L509)
+	- I claim that this is worth people's time.
+	- It's really easy to test this.
+- Sampler.
+	- https://towardsdatascience.com/how-to-sample-from-language-models-682bceb97277
+	- Batched sampler
+	- Sampler for pair of contexts.
+	- Sampler for "-- and that was bad"
+		- efficiently
+- Gwern shit
+	- https://www.alignmentforum.org/posts/k7oxdbNaGATZbtEg3/redwood-research-s-current-project?commentId=CMvfybQCk6sxtLFMN
+
+
+## TODO
 - [X] Delete more non-transformers or non-essential stuff
 - [X] Delete duplicated BERT solution file
-- [ ] Organize files to be much simpler (BERT and GPT2 folders)
+- [X] Organize files to be much simpler (BERT and GPT2 folders)
 - [ ] Redo requirements by creating a fresh venv
 - [ ] Run testing code for BERT
 - [ ] Refactor testing code into pytest or unittest

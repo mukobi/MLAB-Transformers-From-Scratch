@@ -1,7 +1,7 @@
 import torch as t
 import transformers
 import days.bert as bert
-from test_all import allclose
+from tests.test_all import allclose
 import torch.nn as nn
 import torch.nn.functional as F
 

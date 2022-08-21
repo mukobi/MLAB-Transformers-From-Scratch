@@ -13,3 +13,5 @@ launch.json
 
 # New in mukobi/MLAB-Transformers-From-Scratch
 __pycache__
+venv
+.vscode
