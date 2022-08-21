@@ -1,7 +1,7 @@
 
 # TODO
 - [X] Delete more non-transformers or non-essential stuff
-- [ ] Delete duplicated transformer solution file
+- [X] Delete duplicated BERT solution file
 - [ ] Organize files to be much simpler (BERT and GPT2 folders)
 - [ ] Redo requirements by creating a fresh venv
 - [ ] Run testing code for BERT
