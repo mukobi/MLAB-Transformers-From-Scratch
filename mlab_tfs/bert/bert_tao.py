@@ -12,7 +12,7 @@ from torch.nn import Embedding, Dropout, LayerNorm, Linear
 from torch.nn.functional import gelu, softmax
 
 from einops import rearrange
-from days.utils import tpeek, copy_weight_bias
+from mlab_tfs.utils.mlab_utils import tpeek, copy_weight_bias
 from dataclasses import dataclass
 
 

@@ -1,13 +1,12 @@
 import torch as t
 import transformers
-import days.w2d1.bert_tao as bert
+import bert_tao as bert
 import torch.nn as nn
 import torch.nn.functional as F
-from days.utils import tpeek
+from mlab_tfs.utils.mlab_utils import tpeek
 
 
 def allclose(my_out, their_out, name, tol=1e-5):
-
     if not t.allclose(my_out, their_out, rtol=1e-4, atol=tol):
         errstring = f'error in {name}\n{tpeek("", my_out, ret=True)} \n!=\n{tpeek("", their_out, ret=True)}'
         raise AssertionError(errstring)

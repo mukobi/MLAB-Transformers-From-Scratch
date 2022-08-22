@@ -2,6 +2,7 @@ numpy
 torch
 transformers
 einops
+torchtyping
 
 # jupyterlab==3.2.5
 # torch

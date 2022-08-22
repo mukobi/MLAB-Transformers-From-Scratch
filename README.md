@@ -17,6 +17,7 @@ TODO
 2. Create a virtual environment with venv or Anaconda and activate it if you like to work with virtual environments.
 3. [Install PyTorch](https://pytorch.org/get-started/locally/) with the appropriate configuration for your environment.
 4. Run `pip install -r requirements.txt` to install the other requirements for this repository.
+5. Run `pip install -e .` to install the package in an editable state. 
 
 ### Testing
 
@@ -58,7 +59,7 @@ Resources:
 - [X] Delete duplicated BERT solution file
 - [X] Organize files to be much simpler (BERT and GPT2 folders)
 - [X] Redo requirements by creating a fresh venv
-- [ ] Run testing code for BERT
+- [X] Run testing code for BERT
 - [ ] Refactor testing code into unittest
 - [ ] Create starter file for you with empty stubs
 - [ ] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
