@@ -16,3 +16,4 @@ __pycache__
 venv
 .vscode
 activate_venv.*
+*.egg-info
