@@ -1,6 +1,10 @@
 import unittest
+import re
+
 import torch as t
 from torch import nn
+import transformers
+
 from mlab_tfs.bert import bert_tao, bert_sol
 
 # Base test class
@@ -17,6 +21,25 @@ class MLTest(unittest.TestCase):
 def get_pretrained_bert():
     pretrained_bert, _ = bert_tao.my_bert_from_hf_weights()
     return pretrained_bert
+
+
+def mapkey(key):
+    key = re.sub('^embedding\.', 'embed.', key)
+    key = re.sub('\.position_embedding\.', '.pos_embedding.', key)
+    key = re.sub('^lm_head\.mlp\.', 'lin.', key)
+    key = re.sub('^lm_head\.unembedding\.', 'unembed.', key)
+    key = re.sub('^lm_head\.layer_norm\.', 'layer_norm.', key)
+    key = re.sub('^transformer\.([0-9]+)\.layer_norm',
+                 'blocks.\\1.layernorm1', key)
+    key = re.sub('^transformer\.([0-9]+)\.attention\.pattern\.',
+                 'blocks.\\1.attention.', key)
+    key = re.sub('^transformer\.([0-9]+)\.residual\.layer_norm\.',
+                 'blocks.\\1.layernorm2.', key)
+
+    key = re.sub('^transformer\.', 'blocks.', key)
+    key = re.sub('\.project_out\.', '.project_output.', key)
+    key = re.sub('\.residual\.mlp', '.mlp.lin', key)
+    return key
 
 
 class TestBertEmbedding(MLTest):
@@ -218,6 +241,155 @@ class TestBertAttention(MLTest):
         #     theirs(input_activations),
         #     reference(input_activations),
         # )
+
+
+class TestBertMLP(MLTest):
+    def test_bert_mlp(self):
+        reference = bert_tao.bert_mlp
+        hidden_size = 768
+        intermediate_size = 4 * hidden_size
+
+        token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
+        mlp_1 = nn.Linear(hidden_size, intermediate_size)
+        mlp_2 = nn.Linear(intermediate_size, hidden_size)
+        dropout = t.nn.Dropout(0.1)
+        dropout.eval()
+        self.assert_all_close(
+            bert_sol.bert_mlp(token_activations=token_activations,
+                              linear_1=mlp_1, linear_2=mlp_2),
+            reference(
+                token_activations=token_activations,
+                linear_1=mlp_1,
+                linear_2=mlp_2,
+                dropout=dropout,
+            )
+        )
+
+
+class TestBertLayerNorm(MLTest):
+    def test_layer_norm(self):
+        ln1 = bert_sol.LayerNorm(10)
+        ln2 = nn.LayerNorm(10)
+        tensor = t.randn(20, 10)
+        self.assert_all_close(ln1(tensor), ln2(tensor))
+
+        # TODO maybe incorporate this from tests/nn_functional.py
+        # random_weight = t.empty(9).uniform_(0.8, 1.2)
+        # random_bias = t.empty(9).uniform_(-0.1, 0.1)
+        # random_input = t.empty(8, 9)
+        # their_output = reference.layer_norm(random_input, random_weight, random_bias)
+        # my_output = fn(random_input, random_weight, random_bias)
+        # allclose(my_output, their_output, "layer norm")
+
+
+class TestBertBlock(MLTest):
+    def test_bert_block(self):
+        config = {
+            "vocab_size": 28996,
+            "intermediate_size": 3072,
+            "hidden_size": 768,
+            "num_layers": 12,
+            "num_heads": 12,
+            "max_position_embeddings": 512,
+            "dropout": 0.1,
+            "type_vocab_size": 2,
+        }
+        t.random.manual_seed(0)
+        reference = bert_tao.BertBlock(config)
+        reference.eval()
+        t.random.manual_seed(0)
+        theirs = bert_sol.BertBlock(
+            intermediate_size=config["intermediate_size"],
+            hidden_size=config["hidden_size"],
+            num_heads=config["num_heads"],
+            dropout=config["dropout"],
+        )
+        theirs.eval()
+        input_activations = t.rand((2, 3, 768))
+        self.assert_all_close(
+            theirs(input_activations),
+            reference(input_activations)
+        )
+
+
+class TestBertEndToEnd(MLTest):
+    """Involves loading pretrained weights."""
+
+    def test_bert_logits(self):
+        config = {
+            "vocab_size": 28996,
+            "intermediate_size": 3072,
+            "hidden_size": 768,
+            "num_layers": 12,
+            "num_heads": 12,
+            "max_position_embeddings": 512,
+            "dropout": 0.1,
+            "type_vocab_size": 2,
+        }
+        t.random.manual_seed(0)
+        reference = bert_tao.Bert(config)
+        reference.eval()
+        t.random.manual_seed(0)
+        theirs = bert_sol.Bert(**config)
+        theirs.eval()
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            "bert-base-cased")
+        input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
+        self.assert_all_close(
+            theirs(input_ids=input_ids),
+            reference(input_ids=input_ids).logits
+        )
+
+    def test_bert_classification(self):
+        config = {
+            "vocab_size": 28996,
+            "intermediate_size": 3072,
+            "hidden_size": 768,
+            "num_layers": 12,
+            "num_heads": 12,
+            "max_position_embeddings": 512,
+            "dropout": 0.1,
+            "type_vocab_size": 2,
+            "num_classes": 2,
+        }
+        t.random.manual_seed(0)
+        reference = bert_tao.Bert(config)
+        reference.eval()
+        t.random.manual_seed(0)
+        theirs = bert_sol.BertWithClassify(**config)
+        theirs.eval()
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            "bert-base-cased")
+        input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
+        logits, classifs = theirs(input_ids=input_ids)
+        self.assert_all_close(
+            logits,
+            reference(input_ids=input_ids).logits,
+        )
+
+        self.assert_all_close(
+            classifs,
+            reference(input_ids=input_ids).classification,
+        )
+
+    def test_same_output_with_pretrained_weights(self):
+        my_bert = bert_sol.Bert(
+            vocab_size=28996, hidden_size=768, max_position_embeddings=512,
+            type_vocab_size=2, dropout=0.1, intermediate_size=3072,
+            num_heads=12, num_layers=12
+        )
+        pretrained_bert = get_pretrained_bert()
+        mapped_params = {mapkey(k): v for k, v in pretrained_bert.state_dict().items()
+                         if not k.startswith('classification_head')}
+        my_bert.load_state_dict(mapped_params)
+        tol = 1e-4
+        vocab_size = pretrained_bert.embedding.token_embedding.weight.shape[0]
+        input_ids = t.randint(0, vocab_size, (10, 20))
+        self.assert_all_close(
+            my_bert.eval()(input_ids),
+            pretrained_bert.eval()(input_ids).logits,
+            tol=tol,
+        )
 
 
 if __name__ == '__main__':
