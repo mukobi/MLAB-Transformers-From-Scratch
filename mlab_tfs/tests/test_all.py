@@ -1,40 +1,3 @@
-import sys, traceback
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
-from pygments.formatters import TerminalFormatter
-import re
-
-lexer = get_lexer_by_name("pytb" if sys.version_info.major < 3 else "py3tb")
-formatter = TerminalFormatter()
-
-
-def format_traceback(tbtext):
-    # replace long python internal package path
-    tbtext = re.sub(
-        r"/home/[a-zA-Z/.]+/.asdf/installs/python/[0-9.]+/lib/python[0-9.]+/site-packages/",
-        "<PKG>/",
-        tbtext,
-    )
-
-    # remove gin stuff
-    tbtext = re.sub(r".*File .*/gin/.+line \d+, in .*\n[^\n]*\n", "", tbtext)
-    tbtext = re.sub(r".*In call to configurable.*\n[^\n]*\n", "", tbtext)
-
-    return highlight(tbtext, lexer, formatter)
-
-
-def setmyexcepthook():
-    def myexcepthook(type, value, tb):
-        print("type")
-        tbtext = "".join(traceback.format_exception(type, value, tb))
-
-        sys.stderr.write(format_traceback(tbtext))
-
-    sys.excepthook = myexcepthook
-
-
-setmyexcepthook()
-
 import time
 import torch as t
 import torch.nn as nn
@@ -43,12 +6,10 @@ import numpy as np
 import days.modules as modules
 from transformers.utils.dummy_sentencepiece_objects import PegasusTokenizer
 import days.bert as bert
-import days.gpt_2_from_scratch.gpt2 as gpt2
-import days.old_resnet as old_resnet
+import days.gpt2 as gpt2
 import pytest
 import transformers
 from days.utils import tpeek
-import days.w2d5.dataparallel as dp
 
 
 def init_both(my_class, their_class, *args, **kwargs):
@@ -352,16 +313,7 @@ def test_gpt2_specific_prob():
     print("probs", {x: y for x, y in zip(completions, probs)})
 
 
-def test_dp():
-    dp.create_processes()
-
-
-def test_resnet():
-    old_resnet.resnet34_with_pretrained_weights()
-
-
 if __name__ == "__main__":
-    test_dp()
     test_gpt2_generation_beam()
     test_bert()
     test_gpt2_generation()

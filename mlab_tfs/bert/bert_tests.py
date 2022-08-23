@@ -139,6 +139,14 @@ def test_layer_norm(LayerNorm):
     tensor = t.randn(20, 10)
     allclose(ln1(tensor), ln2(tensor), "layer norm")
 
+    # TODO maybe incorporate this from tests/nn_functional.py
+    # random_weight = t.empty(9).uniform_(0.8, 1.2)
+    # random_bias = t.empty(9).uniform_(-0.1, 0.1)
+    # random_input = t.empty(8, 9)
+    # their_output = reference.layer_norm(random_input, random_weight, random_bias)
+    # my_output = fn(random_input, random_weight, random_bias)
+    # allclose(my_output, their_output, "layer norm")
+
 
 # TODO write this
 def test_bert(your_module):

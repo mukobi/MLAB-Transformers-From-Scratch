@@ -77,6 +77,7 @@ Resources:
 - [ ] Include config or hyperparams or code to load weights
 - [ ] Change TODO into a changelist to describe differences from upstream
 - [ ] Do BERT
+- [ ] Try removing __init__.py and other files if not used
 - [ ] Remove commented requirements now that requirements are verified
 - [ ] Write BERT readme
 - [ ] Clean up GPT-2 folder (might not need to do much)
