@@ -5,7 +5,7 @@ import torch as t
 from torch import nn
 import transformers
 
-from mlab_tfs.bert import bert_tao, bert_sol
+from mlab_tfs.bert import bert_student, bert_reference
 
 # Base test class
 # TODO move somewhere better
@@ -19,7 +19,7 @@ class MLTest(unittest.TestCase):
 # Utility functions.
 # TODO move somewhere better
 def get_pretrained_bert():
-    pretrained_bert, _ = bert_tao.my_bert_from_hf_weights()
+    pretrained_bert, _ = bert_reference.my_bert_from_hf_weights()
     return pretrained_bert
 
 
@@ -46,7 +46,7 @@ class TestBertEmbedding(MLTest):
     def test_embedding(self):
         random_input = t.randint(0, 10, (2, 3))
         t.manual_seed(1157)
-        emb1 = bert_sol.Embedding(10, 5)
+        emb1 = bert_student.Embedding(10, 5)
         t.manual_seed(1157)
         emb2 = nn.Embedding(10, 5)
         self.assert_all_close(emb1(random_input), emb2(random_input))
@@ -61,10 +61,10 @@ class TestBertEmbedding(MLTest):
         }
         input_ids = t.randint(0, 2900, (2, 3))
         tt_ids = t.randint(0, 2, (2, 3))
-        reference = bert_tao.BertEmbedding(config)
+        reference = bert_reference.BertEmbedding(config)
         reference.eval()
         self.assert_all_close(
-            bert_sol.bert_embedding(
+            bert_student.bert_embedding(
                 input_ids=input_ids,
                 token_type_ids=tt_ids,
                 token_embedding=reference.token_embedding,
@@ -86,10 +86,10 @@ class TestBertEmbedding(MLTest):
         input_ids = t.randint(0, 2900, (2, 3))
         tt_ids = t.randint(0, 2, (2, 3))
         t.random.manual_seed(0)
-        reference = bert_tao.BertEmbedding(config)
+        reference = bert_reference.BertEmbedding(config)
         reference.eval()
         t.random.manual_seed(0)
-        yours = bert_sol.BertEmbedding(**config)
+        yours = bert_student.BertEmbedding(**config)
         yours.eval()
         self.assert_all_close(
             yours(input_ids=input_ids, token_type_ids=tt_ids),
@@ -99,7 +99,7 @@ class TestBertEmbedding(MLTest):
 
 class TestBertAttention(MLTest):
     def test_attention_fn(self):
-        reference = bert_tao.multi_head_self_attention
+        reference = bert_reference.multi_head_self_attention
         hidden_size = 768
         batch_size = 2
         seq_length = 3
@@ -113,7 +113,7 @@ class TestBertAttention(MLTest):
         dropout = t.nn.Dropout(0.1)
         dropout.eval()
         self.assert_all_close(
-            bert_sol.bert_attention(
+            bert_student.bert_attention(
                 token_activations=token_activations,
                 num_heads=num_heads,
                 attention_pattern=attention_pattern,
@@ -133,14 +133,14 @@ class TestBertAttention(MLTest):
         )
 
     def test_attention_pattern_fn(self):
-        reference = bert_tao.raw_attention_pattern
+        reference = bert_reference.raw_attention_pattern
         hidden_size = 768
         token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
         num_heads = 12
         project_query = nn.Linear(hidden_size, hidden_size)
         project_key = nn.Linear(hidden_size, hidden_size)
         self.assert_all_close(
-            bert_sol.raw_attention_pattern(
+            bert_student.raw_attention_pattern(
                 token_activations=token_activations,
                 num_heads=num_heads,
                 project_query=project_query,
@@ -157,7 +157,7 @@ class TestBertAttention(MLTest):
     def test_attention_pattern_single_head(self):
         """Note: Unused in the original MLAB repo."""
         pass
-        # reference = bert_tao.raw_attention_pattern
+        # reference = bert_reference.raw_attention_pattern
         # hidden_size = 768
         # token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
         # num_heads = 12
@@ -198,10 +198,10 @@ class TestBertAttention(MLTest):
             "type_vocab_size": 2,
         }
         t.random.manual_seed(0)
-        reference = bert_tao.SelfAttentionLayer(config)
+        reference = bert_reference.SelfAttentionLayer(config)
         reference.eval()
         t.random.manual_seed(0)
-        theirs = bert_sol.MultiHeadedSelfAttention(
+        theirs = bert_student.MultiHeadedSelfAttention(
             hidden_size=config["hidden_size"],
             num_heads=config["num_heads"],
             # dropout=config["dropout"],
@@ -227,7 +227,7 @@ class TestBertAttention(MLTest):
         #     "type_vocab_size": 2,
         # }
         # t.random.manual_seed(0)
-        # reference = bert_tao.AttentionPattern(config)
+        # reference = bert_reference.AttentionPattern(config)
         # reference.eval()
         # t.random.manual_seed(0)
         # theirs = bert_sol.Atten(
@@ -245,7 +245,7 @@ class TestBertAttention(MLTest):
 
 class TestBertMLP(MLTest):
     def test_bert_mlp(self):
-        reference = bert_tao.bert_mlp
+        reference = bert_reference.bert_mlp
         hidden_size = 768
         intermediate_size = 4 * hidden_size
 
@@ -255,8 +255,8 @@ class TestBertMLP(MLTest):
         dropout = t.nn.Dropout(0.1)
         dropout.eval()
         self.assert_all_close(
-            bert_sol.bert_mlp(token_activations=token_activations,
-                              linear_1=mlp_1, linear_2=mlp_2),
+            bert_student.bert_mlp(token_activations=token_activations,
+                                  linear_1=mlp_1, linear_2=mlp_2),
             reference(
                 token_activations=token_activations,
                 linear_1=mlp_1,
@@ -268,7 +268,7 @@ class TestBertMLP(MLTest):
 
 class TestBertLayerNorm(MLTest):
     def test_layer_norm(self):
-        ln1 = bert_sol.LayerNorm(10)
+        ln1 = bert_student.LayerNorm(10)
         ln2 = nn.LayerNorm(10)
         tensor = t.randn(20, 10)
         self.assert_all_close(ln1(tensor), ln2(tensor))
@@ -295,10 +295,10 @@ class TestBertBlock(MLTest):
             "type_vocab_size": 2,
         }
         t.random.manual_seed(0)
-        reference = bert_tao.BertBlock(config)
+        reference = bert_reference.BertBlock(config)
         reference.eval()
         t.random.manual_seed(0)
-        theirs = bert_sol.BertBlock(
+        theirs = bert_student.BertBlock(
             intermediate_size=config["intermediate_size"],
             hidden_size=config["hidden_size"],
             num_heads=config["num_heads"],
@@ -327,10 +327,10 @@ class TestBertEndToEnd(MLTest):
             "type_vocab_size": 2,
         }
         t.random.manual_seed(0)
-        reference = bert_tao.Bert(config)
+        reference = bert_reference.Bert(config)
         reference.eval()
         t.random.manual_seed(0)
-        theirs = bert_sol.Bert(**config)
+        theirs = bert_student.Bert(**config)
         theirs.eval()
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             "bert-base-cased")
@@ -353,10 +353,10 @@ class TestBertEndToEnd(MLTest):
             "num_classes": 2,
         }
         t.random.manual_seed(0)
-        reference = bert_tao.Bert(config)
+        reference = bert_reference.Bert(config)
         reference.eval()
         t.random.manual_seed(0)
-        theirs = bert_sol.BertWithClassify(**config)
+        theirs = bert_student.BertWithClassify(**config)
         theirs.eval()
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             "bert-base-cased")
@@ -373,7 +373,7 @@ class TestBertEndToEnd(MLTest):
         )
 
     def test_same_output_with_pretrained_weights(self):
-        my_bert = bert_sol.Bert(
+        my_bert = bert_student.Bert(
             vocab_size=28996, hidden_size=768, max_position_embeddings=512,
             type_vocab_size=2, dropout=0.1, intermediate_size=3072,
             num_heads=12, num_layers=12
