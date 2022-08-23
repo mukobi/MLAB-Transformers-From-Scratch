@@ -61,7 +61,8 @@ Resources:
 - [X] Organize files to be much simpler (BERT and GPT2 folders)
 - [X] Redo requirements by creating a fresh venv
 - [X] Run testing code for BERT
-- [ ] Remove old git stuff (prune?) so it's a smaller download
+- [X] Remove old git stuff (prune?) so it's a smaller download
+- [X] Set up Pylint with a config
 - [ ] Refactor testing code into unittest
 - [ ] Create starter file for you with empty stubs
 - [ ] Rename files to bert_reference, bert_student
