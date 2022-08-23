@@ -107,14 +107,16 @@ def test_log_softmax():
 
 def test_embedding():
     embed_input = t.LongTensor([[1, 2, 3], [7, 8, 9]])
-    my_embedding, their_embedding = init_both(bert.Embedding, nn.Embedding, 234, 111)
+    my_embedding, their_embedding = init_both(
+        bert.Embedding, nn.Embedding, 234, 111)
     my_output = my_embedding(embed_input)
     their_output = their_embedding(embed_input)
     allclose(my_output, their_output, "embedding")
 
 
 def test_bert_attention():
-    their_bert = transformers.AutoModelForMaskedLM.from_pretrained("bert-base-cased")
+    their_bert = transformers.AutoModelForMaskedLM.from_pretrained(
+        "bert-base-cased")
     their_layer = their_bert.bert.encoder.layer[0].attention
     my_layer = bert.SelfAttentionLayer(their_bert.config)
     bert.copy_bert_attention(my_layer, their_layer)
@@ -129,7 +131,8 @@ def test_bert_attention():
 
 
 def test_bert_layer():
-    their_bert = transformers.AutoModelForMaskedLM.from_pretrained("bert-base-cased")
+    their_bert = transformers.AutoModelForMaskedLM.from_pretrained(
+        "bert-base-cased")
     their_layer = their_bert.bert.encoder.layer[0]
     my_layer = bert.BertBlock(their_bert.config)
     bert.copy_bert_layer(my_layer, their_layer)
@@ -250,7 +253,8 @@ def test_gpt2_generation():
     print("generating")
     their_generated_text = my_gpt2.tokenizer.decode(
         their_gpt2.generate(
-            input_ids=my_gpt2.tokenizer([prompt], return_tensors="pt")["input_ids"],
+            input_ids=my_gpt2.tokenizer([prompt], return_tensors="pt")[
+                "input_ids"],
             max_length=10,
         )[0]
         .cpu()
@@ -270,7 +274,8 @@ def test_gpt2_generation_beam():
     print("generating")
     their_generated_text = my_gpt2.tokenizer.decode(
         their_gpt2.generate(
-            input_ids=my_gpt2.tokenizer([prompt], return_tensors="pt")["input_ids"],
+            input_ids=my_gpt2.tokenizer([prompt], return_tensors="pt")[
+                "input_ids"],
             max_length=10,
         )[0]
         .cpu()

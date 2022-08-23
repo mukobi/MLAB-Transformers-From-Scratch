@@ -1,6 +1,6 @@
 import torch as t
 import transformers
-import bert_tao as bert
+from . import bert_tao as bert
 import torch.nn as nn
 import torch.nn.functional as F
 from mlab_tfs.utils.mlab_utils import tpeek
