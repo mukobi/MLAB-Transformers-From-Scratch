@@ -1,7 +1,8 @@
-import bert_tests as bert_tests
-from einops import rearrange, reduce, repeat
 import math
 import re
+
+import bert_tests
+from einops import rearrange, repeat
 import torch as t
 from torch import einsum
 from torch.nn import functional as F

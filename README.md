@@ -55,13 +55,16 @@ Resources:
 
 
 ## TODO
+### BERT
 - [X] Delete more non-transformers or non-essential stuff
 - [X] Delete duplicated BERT solution file
 - [X] Organize files to be much simpler (BERT and GPT2 folders)
 - [X] Redo requirements by creating a fresh venv
 - [X] Run testing code for BERT
+- [ ] Remove old git stuff (prune?) so it's a smaller download
 - [ ] Refactor testing code into unittest
 - [ ] Create starter file for you with empty stubs
+- [ ] Rename files to bert_reference, bert_student
 - [ ] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
 - [ ] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
     - [ ] Say it should be about 200 (or 150-300) lines of code
@@ -79,6 +82,8 @@ Resources:
 - [ ] Do BERT
 - [ ] Try removing __init__.py and other files if not used
 - [ ] Remove commented requirements now that requirements are verified
+
+### GPT
 - [ ] Write BERT readme
 - [ ] Clean up GPT-2 folder (might not need to do much)
 - [ ] Run testing code for GPT-2
