@@ -22,10 +22,18 @@ TODO
 ### Testing
 
 TODO
+You have a few options
+1. `python -m unittest mlab_tfs.tests.test_bert`
+2. `python ./mlab_tfs/tests/test_bert.py`
+3. If using an IDE like Visual Studio Code with the Python extension, the unit tests should already be discovered and show up in the Testing pane.
 
 ### Implementing Transformers
 
 TODO
+- Uhh I guess strip out the implementation of bert_student.py so it's just the function and class definitions
+- But don't look at what you take out
+- Then reimplement it yourself
+- Promise it will be better soon!
 
 ## Week 2: Implementing transformers
 Resources:
@@ -63,9 +71,9 @@ Resources:
 - [X] Run testing code for BERT
 - [X] Remove old git stuff (prune?) so it's a smaller download
 - [X] Set up Pylint with a config
-- [ ] Refactor testing code into unittest
-- [ ] Create starter file for you with empty stubs
+- [X] Refactor testing code into unittest
 - [ ] Rename files to bert_reference, bert_student
+- [ ] Create starter file for you with empty stubs
 - [ ] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
 - [ ] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
     - [ ] Say it should be about 200 (or 150-300) lines of code
