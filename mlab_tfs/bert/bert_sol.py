@@ -1,7 +1,6 @@
 import math
 import re
 
-from . import bert_tests
 from einops import rearrange, repeat
 import torch as t
 from torch import einsum
@@ -26,10 +25,6 @@ def raw_attention_pattern(
     return scores
 
 
-if __name__ == "__main__":
-    bert_tests.test_attention_pattern_fn(raw_attention_pattern)
-
-
 def bert_attention(
     token_activations,  # : Tensor[batch_size, seq_length, hidden_size (768)],
     num_heads: int,
@@ -45,10 +40,6 @@ def bert_attention(
     combined_values = einsum('bhkl, bhkq -> bhql', V, softmaxed_attention)
     out = project_output(rearrange(combined_values, 'b h q l -> b q (h l)'))
     return out
-
-
-if __name__ == "__main__":
-    bert_tests.test_attention_fn(bert_attention)
 
 
 class MultiHeadedSelfAttention(nn.Module):
@@ -67,18 +58,10 @@ class MultiHeadedSelfAttention(nn.Module):
             input, self.num_heads, attention_pattern, self.project_value, self.project_output)
 
 
-if __name__ == "__main__":
-    bert_tests.test_bert_attention(MultiHeadedSelfAttention)
-
-
 def bert_mlp(token_activations,  # : torch.Tensor[batch_size,seq_length,768],
              linear_1: nn.Module, linear_2: nn.Module
              ):  # -> torch.Tensor[batch_size, seq_length, 768]
     return linear_2(F.gelu(linear_1(token_activations)))
-
-
-if __name__ == "__main__":
-    bert_tests.test_bert_mlp(bert_mlp)
 
 
 class BertMLP(nn.Module):
@@ -104,10 +87,6 @@ class LayerNorm(nn.Module):
         return input_m0v1 * self.weight + self.bias
 
 
-if __name__ == "__main__":
-    bert_tests.test_layer_norm(LayerNorm)
-
-
 class BertBlock(nn.Module):
     def __init__(self, hidden_size, intermediate_size, num_heads, dropout: float):
         super().__init__()
@@ -122,10 +101,6 @@ class BertBlock(nn.Module):
         return self.layernorm2(self.dropout(self.mlp(out)) + out)
 
 
-if __name__ == "__main__":
-    bert_tests.test_bert_block(BertBlock)
-
-
 # import transformers
 # tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
 # print(tokenizer(['Hello, I am a sentence.']))
@@ -137,10 +112,6 @@ class Embedding(nn.Module):
 
     def forward(self, input):
         return self.embedding_matrix[input]
-
-
-if __name__ == "__main__":
-    bert_tests.test_embedding(Embedding)
 
 
 def bert_embedding(
@@ -159,10 +130,6 @@ def bert_embedding(
     return dropout(layer_norm(out))
 
 
-if __name__ == "__main__":
-    bert_tests.test_bert_embedding_fn(bert_embedding)
-
-
 class BertEmbedding(nn.Module):
     def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
                  dropout: float):
@@ -177,10 +144,6 @@ class BertEmbedding(nn.Module):
         return bert_embedding(
             input_ids, token_type_ids, self.pos_embedding, self.token_embedding,
             self.token_type_embedding, self.layer_norm, self.dropout)
-
-
-if __name__ == "__main__":
-    bert_tests.test_bert_embedding(BertEmbedding)
 
 
 class Bert(nn.Module):
@@ -247,18 +210,3 @@ def mapkey(key):
     key = re.sub('\.project_out\.', '.project_output.', key)
     key = re.sub('\.residual\.mlp', '.mlp.lin', key)
     return key
-
-
-if __name__ == "__main__":
-    bert_tests.test_bert(Bert)
-    bert_tests.test_bert_classification(BertWithClassify)
-    my_bert = Bert(
-        vocab_size=28996, hidden_size=768, max_position_embeddings=512,
-        type_vocab_size=2, dropout=0.1, intermediate_size=3072,
-        num_heads=12, num_layers=12
-    )
-    pretrained_bert = bert_tests.get_pretrained_bert()
-    mapped_params = {mapkey(k): v for k, v in pretrained_bert.state_dict().items()
-                     if not k.startswith('classification_head')}
-    my_bert.load_state_dict(mapped_params)
-    bert_tests.test_same_output(my_bert, pretrained_bert)
