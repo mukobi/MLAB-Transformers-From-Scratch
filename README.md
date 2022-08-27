@@ -30,10 +30,9 @@ You have a few options
 ### Implementing Transformers
 
 TODO
-- Uhh I guess strip out the implementation of bert_student.py so it's just the function and class definitions
-- But don't look at what you take out
-- Then reimplement it yourself
-- Promise it will be better soon!
+- Go to [the BERT folder](./mlab_tfs/bert).
+- Read the instructions in the README file there.
+- Reimplement the stubbed BERT classes and functions and pass the tests.
 
 ## Week 2: Implementing transformers
 Resources:
@@ -91,6 +90,9 @@ Resources:
 - [ ] Do BERT
 - [ ] Try removing __init__.py and other files if not used
 - [ ] Remove commented requirements now that requirements are verified
+- [ ] Replace `# Tensor[...` with `TensorType` stuff
+- [ ] Rewrite/fix the 2 commented out tests
+- [ ] Integrate tests from the other archived files
 
 ### GPT
 - [ ] Write BERT readme

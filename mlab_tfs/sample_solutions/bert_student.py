@@ -191,22 +191,3 @@ class BertWithClassify(nn.Module):
         classifs = self.classification_head(
             self.classification_dropout(emb[:, 0]))
         return logits, classifs
-
-
-def mapkey(key):
-    key = re.sub('^embedding\.', 'embed.', key)
-    key = re.sub('\.position_embedding\.', '.pos_embedding.', key)
-    key = re.sub('^lm_head\.mlp\.', 'lin.', key)
-    key = re.sub('^lm_head\.unembedding\.', 'unembed.', key)
-    key = re.sub('^lm_head\.layer_norm\.', 'layer_norm.', key)
-    key = re.sub('^transformer\.([0-9]+)\.layer_norm',
-                 'blocks.\\1.layernorm1', key)
-    key = re.sub('^transformer\.([0-9]+)\.attention\.pattern\.',
-                 'blocks.\\1.attention.', key)
-    key = re.sub('^transformer\.([0-9]+)\.residual\.layer_norm\.',
-                 'blocks.\\1.layernorm2.', key)
-
-    key = re.sub('^transformer\.', 'blocks.', key)
-    key = re.sub('\.project_out\.', '.project_output.', key)
-    key = re.sub('\.residual\.mlp', '.mlp.lin', key)
-    return key
