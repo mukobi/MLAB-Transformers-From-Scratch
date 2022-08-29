@@ -7,6 +7,53 @@ from torch.nn import functional as F
 from torch import nn
 
 
+class Embedding(nn.Module):
+    """
+    A simple lookup table that stores embeddings of a fixed dictionary and size.
+
+    This module is often used to store word embeddings and retrieve them using indices. The input to the module is a list of indices, and the output is the corresponding word embeddings.
+
+    Variables:
+        Embedding.weight (Tensor): the learnable weights of the module of shape (num_embeddings, embedding_dim) initialized from a normal distribution (mu=0, sigma=1).
+
+    Dependencies:
+        None.
+
+    Hints:
+        Use torch.randn to create a random tensor sampled by a normal distribution.
+    """
+
+    def __init__(self, vocab_size, embed_size):
+        super().__init__()
+        self.weight = nn.Parameter(t.randn((vocab_size, embed_size)))
+
+    def forward(self, input):
+        """Look up the input list of indices in the embedding matrix."""
+        return self.weight[input]
+
+
+def bert_embedding(
+    input_ids,  # : [batch, seqlen],
+    token_type_ids,  # [batch, seqlen],
+    position_embedding,  # : nn.Embedding,
+    token_embedding,  # : nn.Embedding,
+    token_type_embedding,  # : nn.Embedding,
+    layer_norm,  # : nn.Module,
+    dropout  # : nn.Module
+):
+    raise NotImplementedError
+
+
+class BertEmbedding(nn.Module):
+    def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
+                 dropout: float):
+        super().__init__()
+        raise NotImplementedError
+
+    def forward(self, input_ids, token_type_ids):
+        raise NotImplementedError
+
+
 def raw_attention_pattern(
     token_activations,  # Tensor[batch_size, seq_length, hidden_size(768)],
     num_heads,
@@ -66,37 +113,6 @@ class BertBlock(nn.Module):
         raise NotImplementedError
 
     def forward(self, input):
-        raise NotImplementedError
-
-
-class Embedding(nn.Module):
-    def __init__(self, vocab_size, embed_size):
-        super().__init__()
-        raise NotImplementedError
-
-    def forward(self, input):
-        raise NotImplementedError
-
-
-def bert_embedding(
-    input_ids,  # : [batch, seqlen],
-    token_type_ids,  # [batch, seqlen],
-    position_embedding,  # : nn.Embedding,
-    token_embedding,  # : nn.Embedding,
-    token_type_embedding,  # : nn.Embedding,
-    layer_norm,  # : nn.Module,
-    dropout  # : nn.Module
-):
-    raise NotImplementedError
-
-
-class BertEmbedding(nn.Module):
-    def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
-                 dropout: float):
-        super().__init__()
-        raise NotImplementedError
-
-    def forward(self, input_ids, token_type_ids):
         raise NotImplementedError
 
 
