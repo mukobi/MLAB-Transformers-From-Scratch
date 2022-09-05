@@ -1,10 +1,11 @@
 import math
 
-from einops import rearrange, repeat
 import torch as t
 from torch import einsum
-from torch.nn import functional as F
 from torch import nn
+from torch.nn import functional as F
+from einops import rearrange, repeat
+from torchtyping import TensorType
 
 
 class LayerNorm(nn.Module):
@@ -12,6 +13,12 @@ class LayerNorm(nn.Module):
     Layer normalization. See https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html
 
     Parameters:
+        normalized_shape (int or list or torch.Size): input shape from an expected input of size
+        [*, normalized_shape[0], normalized_shape[1], ..., normalized_shape[-1]]
+        If a single integer is used, it is treated as a singleton list, and this module will
+        normalize over the last dimension which is expected to be of that specific size.
+
+    Variables:
         LayerNorm.weight: the learnable weights gamma of the module of shape normalized_shape.
         The values are initialized to 1.
 
@@ -27,12 +34,17 @@ class LayerNorm(nn.Module):
 
     def __init__(self, normalized_shape: int):
         super().__init__()
-        raise NotImplementedError
+        self.weight = nn.Parameter(t.ones(normalized_shape))
+        self.bias = nn.Parameter(t.zeros(normalized_shape))
 
-    def forward(self, input):
+    def forward(self, input: TensorType[...]):
         """Applies Layer Normalization over a mini-batch of inputs."""
+        all_but_first_dims = tuple(range(1, len(input.shape)))  # (1, 2, ..., n-1)
+        var, mean = t.var_mean(input, all_but_first_dims, unbiased=False)
+        var = rearrange(var, 'var -> var ()')
+        mean = rearrange(mean, 'mean -> mean ()')
         eps = 1e-05
-        raise NotImplementedError
+        return (input - mean) / t.sqrt(var + eps) * self.weight + self.bias
 
 
 class Embedding(nn.Module):
@@ -43,7 +55,7 @@ class Embedding(nn.Module):
     This module is often used to store word embeddings and retrieve them using indices. The input
     to the module is a list of indices, and the output is the corresponding word embeddings.
 
-    Parameters:
+    Variables:
         Embedding.weight (Tensor): the learnable weights of the module of shape
         (num_embeddings, embedding_dim) initialized from a normal distribution (mu=0, sigma=1).
 
