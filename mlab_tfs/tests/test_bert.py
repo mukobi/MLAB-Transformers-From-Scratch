@@ -4,16 +4,23 @@ import re
 import torch as t
 from torch import nn
 import transformers
+from torchtyping import TensorType
 
 from mlab_tfs.bert import bert_student, bert_reference
+from mlab_tfs.utils.mlab_utils import itpeek
 
 # Base test class
 # TODO move somewhere better
 
 
 class MLTest(unittest.TestCase):
-    def assert_all_close(self, my_out, their_out, tol=1e-5):
-        self.assertTrue(t.allclose(my_out, their_out, rtol=1e-4, atol=tol))
+    def assert_tensors_close(self, student_out: TensorType, reference_out: TensorType, tol=1e-5):
+        """Assert that two tensors have the same size and all elements are close."""
+        message = f'Mismatched shapes!\nExpected:\n{student_out.shape}\nFound:\n{reference_out.shape}'
+        self.assertEqual(reference_out.shape, student_out.shape, message)
+
+        message = f'Not all values are close!\nExpected:\n{itpeek(reference_out)}\nFound:\n{itpeek(student_out)}'
+        self.assertTrue(t.allclose(reference_out, student_out, rtol=1e-4, atol=tol), message)
 
 
 # Utility functions.
@@ -53,7 +60,7 @@ class TestBertEmbedding(MLTest):
         emb1 = bert_student.Embedding(10, 5)
         t.manual_seed(1157)
         emb2 = nn.Embedding(10, 5)
-        self.assert_all_close(emb1(random_input), emb2(random_input))
+        self.assert_tensors_close(emb1(random_input), emb2(random_input))
 
     def test_bert_embedding(self):
         """Test bert_student.BertEmbedding for parity with bert_reference.BertEmbedding."""
@@ -72,7 +79,7 @@ class TestBertEmbedding(MLTest):
         t.random.manual_seed(0)
         yours = bert_student.BertEmbedding(**config)
         yours.eval()
-        self.assert_all_close(
+        self.assert_tensors_close(
             yours(input_ids=input_ids, token_type_ids=tt_ids),
             reference(input_ids=input_ids, token_type_ids=tt_ids)
         )
@@ -95,7 +102,7 @@ class TestBertAttention(MLTest):
         project_output = nn.Linear(hidden_size, hidden_size)
         dropout = t.nn.Dropout(0.1)
         dropout.eval()
-        self.assert_all_close(
+        self.assert_tensors_close(
             bert_student.bert_attention(
                 token_activations=token_activations,
                 num_heads=num_heads,
@@ -122,7 +129,7 @@ class TestBertAttention(MLTest):
         num_heads = 12
         project_query = nn.Linear(hidden_size, hidden_size)
         project_key = nn.Linear(hidden_size, hidden_size)
-        self.assert_all_close(
+        self.assert_tensors_close(
             bert_student.raw_attention_pattern(
                 token_activations=token_activations,
                 num_heads=num_heads,
@@ -191,7 +198,7 @@ class TestBertAttention(MLTest):
         )
         theirs.eval()
         input_activations = t.rand((2, 3, 768))
-        self.assert_all_close(
+        self.assert_tensors_close(
             theirs(input_activations),
             reference(input_activations)
         )
@@ -237,7 +244,7 @@ class TestBertMLP(MLTest):
         mlp_2 = nn.Linear(intermediate_size, hidden_size)
         dropout = t.nn.Dropout(0.1)
         dropout.eval()
-        self.assert_all_close(
+        self.assert_tensors_close(
             bert_student.bert_mlp(token_activations=token_activations,
                                   linear_1=mlp_1, linear_2=mlp_2),
             reference(
@@ -256,8 +263,9 @@ class TestBertLayerNorm(MLTest):
         """Test bert_student.LayerNorm for parity with nn.LayerNorm."""
         ln1 = bert_student.LayerNorm(10)
         ln2 = nn.LayerNorm(10)
+        t.random.manual_seed(42)
         tensor = t.randn(20, 10)
-        self.assert_all_close(ln1(tensor), ln2(tensor))
+        self.assert_tensors_close(ln1(tensor), ln2(tensor))
 
         # TODO maybe incorporate this from tests/nn_functional.py
         # random_weight = t.empty(9).uniform_(0.8, 1.2)
@@ -292,7 +300,7 @@ class TestBertBlock(MLTest):
         )
         theirs.eval()
         input_activations = t.rand((2, 3, 768))
-        self.assert_all_close(
+        self.assert_tensors_close(
             theirs(input_activations),
             reference(input_activations)
         )
@@ -321,7 +329,7 @@ class TestBertEndToEnd(MLTest):
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             "bert-base-cased")
         input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
-        self.assert_all_close(
+        self.assert_tensors_close(
             theirs(input_ids=input_ids),
             reference(input_ids=input_ids).logits
         )
@@ -348,12 +356,12 @@ class TestBertEndToEnd(MLTest):
             "bert-base-cased")
         input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
         logits, classifs = theirs(input_ids=input_ids)
-        self.assert_all_close(
+        self.assert_tensors_close(
             logits,
             reference(input_ids=input_ids).logits,
         )
 
-        self.assert_all_close(
+        self.assert_tensors_close(
             classifs,
             reference(input_ids=input_ids).classification,
         )
@@ -371,7 +379,7 @@ class TestBertEndToEnd(MLTest):
         tol = 1e-4
         vocab_size = pretrained_bert.embedding.token_embedding.weight.shape[0]
         input_ids = t.randint(0, vocab_size, (10, 20))
-        self.assert_all_close(
+        self.assert_tensors_close(
             my_bert.eval()(input_ids),
             pretrained_bert.eval()(input_ids).logits,
             tol=tol,
