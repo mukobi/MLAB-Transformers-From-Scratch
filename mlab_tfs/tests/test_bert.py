@@ -259,21 +259,35 @@ class TestBertMLP(MLTest):
 class TestBertLayerNorm(MLTest):
     """Test layer normalization functionality."""
 
-    def test_layer_norm(self):
-        """Test bert_student.LayerNorm for parity with nn.LayerNorm."""
+    def test_layer_norm_2d(self):
+        """Test a 2D input tensor."""
         ln1 = bert_student.LayerNorm(10)
         ln2 = nn.LayerNorm(10)
         t.random.manual_seed(42)
-        tensor = t.randn(20, 10)
-        self.assert_tensors_close(ln1(tensor), ln2(tensor))
+        input = t.randn(20, 10)
+        self.assert_tensors_close(ln1(input), ln2(input))
 
-        # TODO maybe incorporate this from tests/nn_functional.py
-        # random_weight = t.empty(9).uniform_(0.8, 1.2)
-        # random_bias = t.empty(9).uniform_(-0.1, 0.1)
-        # random_input = t.empty(8, 9)
-        # their_output = reference.layer_norm(random_input, random_weight, random_bias)
-        # my_output = fn(random_input, random_weight, random_bias)
-        # allclose(my_output, their_output, "layer norm")
+    def test_layer_norm_3d(self):
+        """Test a 3D input tensor."""
+        ln1 = bert_student.LayerNorm((10, 5))
+        ln2 = nn.LayerNorm((10, 5))
+        t.random.manual_seed(42)
+        input = t.randn(20, 10, 5)
+        self.assert_tensors_close(ln1(input), ln2(input))
+
+    def test_layer_norm_variables(self):
+        """Modify weight and bias and test for the same output."""
+        ln1 = bert_student.LayerNorm(10)
+        ln2 = nn.LayerNorm(10)
+        t.random.manual_seed(42)
+        weight = nn.Parameter(t.randn(10))
+        bias = nn.Parameter(t.randn(10))
+        ln1.weight.set = weight
+        ln2.weight.set = weight
+        ln1.bias = bias
+        ln2.bias = bias
+        input = t.randn(20, 10)
+        self.assert_tensors_close(ln1(input), ln2(input))
 
 
 class TestBertBlock(MLTest):

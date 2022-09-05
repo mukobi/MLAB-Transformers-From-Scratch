@@ -41,8 +41,9 @@ class LayerNorm(nn.Module):
         """Applies Layer Normalization over a mini-batch of inputs."""
         all_but_first_dims = tuple(range(1, len(input.shape)))  # (1, 2, ..., n-1)
         var, mean = t.var_mean(input, all_but_first_dims, unbiased=False)
-        var = rearrange(var, 'var -> var ()')
-        mean = rearrange(mean, 'mean -> mean ()')
+        # Stack up to the dimension of input, e.g. (batch, 1, 1, ... 1)
+        var = rearrange(var, 'var -> var' + ' ()' * (len(input.shape) - 1))
+        mean = rearrange(mean, 'mean -> mean' + ' ()' * (len(input.shape) - 1))
         eps = 1e-05
         return (input - mean) / t.sqrt(var + eps) * self.weight + self.bias
 
