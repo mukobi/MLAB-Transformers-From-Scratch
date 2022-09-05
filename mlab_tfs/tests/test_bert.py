@@ -24,26 +24,30 @@ def get_pretrained_bert():
 
 
 def mapkey(key):
-    key = re.sub('^embedding\.', 'embed.', key)
-    key = re.sub('\.position_embedding\.', '.pos_embedding.', key)
-    key = re.sub('^lm_head\.mlp\.', 'lin.', key)
-    key = re.sub('^lm_head\.unembedding\.', 'unembed.', key)
-    key = re.sub('^lm_head\.layer_norm\.', 'layer_norm.', key)
-    key = re.sub('^transformer\.([0-9]+)\.layer_norm',
+    """Map a key from Hugging Face BERT's parameters to our BERT's parameters."""
+    key = re.sub(r'^embedding\.', 'embed.', key)
+    key = re.sub(r'\.position_embedding\.', '.pos_embedding.', key)
+    key = re.sub(r'^lm_head\.mlp\.', 'lin.', key)
+    key = re.sub(r'^lm_head\.unembedding\.', 'unembed.', key)
+    key = re.sub(r'^lm_head\.layer_norm\.', 'layer_norm.', key)
+    key = re.sub(r'^transformer\.([0-9]+)\.layer_norm',
                  'blocks.\\1.layernorm1', key)
-    key = re.sub('^transformer\.([0-9]+)\.attention\.pattern\.',
+    key = re.sub(r'^transformer\.([0-9]+)\.attention\.pattern\.',
                  'blocks.\\1.attention.', key)
-    key = re.sub('^transformer\.([0-9]+)\.residual\.layer_norm\.',
+    key = re.sub(r'^transformer\.([0-9]+)\.residual\.layer_norm\.',
                  'blocks.\\1.layernorm2.', key)
 
-    key = re.sub('^transformer\.', 'blocks.', key)
-    key = re.sub('\.project_out\.', '.project_output.', key)
-    key = re.sub('\.residual\.mlp', '.mlp.lin', key)
+    key = re.sub(r'^transformer\.', 'blocks.', key)
+    key = re.sub(r'\.project_out\.', '.project_output.', key)
+    key = re.sub(r'\.residual\.mlp', '.mlp.lin', key)
     return key
 
 
 class TestBertEmbedding(MLTest):
+    """Test embedding functionality."""
+
     def test_embedding(self):
+        """Test bert_student.Embedding for parity with nn.Embedding."""
         random_input = t.randint(0, 10, (2, 3))
         t.manual_seed(1157)
         emb1 = bert_student.Embedding(10, 5)
@@ -51,31 +55,8 @@ class TestBertEmbedding(MLTest):
         emb2 = nn.Embedding(10, 5)
         self.assert_all_close(emb1(random_input), emb2(random_input))
 
-    def test_bert_embedding_fn(self):
-        config = {
-            "vocab_size": 28996,
-            "hidden_size": 768,
-            "max_position_embeddings": 512,
-            "type_vocab_size": 2,
-            "dropout": 0.1,
-        }
-        input_ids = t.randint(0, 2900, (2, 3))
-        tt_ids = t.randint(0, 2, (2, 3))
-        reference = bert_reference.BertEmbedding(config)
-        reference.eval()
-        self.assert_all_close(
-            bert_student.bert_embedding(
-                input_ids=input_ids,
-                token_type_ids=tt_ids,
-                token_embedding=reference.token_embedding,
-                token_type_embedding=reference.token_type_embedding,
-                position_embedding=reference.position_embedding,
-                layer_norm=reference.layer_norm,
-                dropout=reference.dropout,
-            ),
-            reference(input_ids=input_ids, token_type_ids=tt_ids))
-
     def test_bert_embedding(self):
+        """Test bert_student.BertEmbedding for parity with bert_reference.BertEmbedding."""
         config = {
             "vocab_size": 28996,
             "hidden_size": 768,
@@ -98,6 +79,8 @@ class TestBertEmbedding(MLTest):
 
 
 class TestBertAttention(MLTest):
+    """Test multi-headed self-attention functionality."""
+
     def test_attention_fn(self):
         reference = bert_reference.multi_head_self_attention
         hidden_size = 768
@@ -267,7 +250,10 @@ class TestBertMLP(MLTest):
 
 
 class TestBertLayerNorm(MLTest):
+    """Test layer normalization functionality."""
+
     def test_layer_norm(self):
+        """Test bert_student.LayerNorm for parity with nn.LayerNorm."""
         ln1 = bert_student.LayerNorm(10)
         ln2 = nn.LayerNorm(10)
         tensor = t.randn(20, 10)

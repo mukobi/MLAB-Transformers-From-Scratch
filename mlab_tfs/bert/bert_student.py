@@ -7,14 +7,45 @@ from torch.nn import functional as F
 from torch import nn
 
 
+class LayerNorm(nn.Module):
+    """
+    Layer normalization. See https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html
+
+    Parameters:
+        LayerNorm.weight: the learnable weights gamma of the module of shape normalized_shape.
+        The values are initialized to 1.
+
+        LayerNorm.bias: the learnable bias beta of the module of shape normalized_shape.
+        The values are initialized to 0.
+
+    Dependencies:
+        None.
+
+    Hints:
+
+    """
+
+    def __init__(self, normalized_shape: int):
+        super().__init__()
+        raise NotImplementedError
+
+    def forward(self, input):
+        """Applies Layer Normalization over a mini-batch of inputs."""
+        eps = 1e-05
+        raise NotImplementedError
+
+
 class Embedding(nn.Module):
     """
-    A simple lookup table that stores embeddings of a fixed dictionary and size.
+    A simple lookup table storing embeddings of a fixed dictionary and size.
+    See https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html
 
-    This module is often used to store word embeddings and retrieve them using indices. The input to the module is a list of indices, and the output is the corresponding word embeddings.
+    This module is often used to store word embeddings and retrieve them using indices. The input
+    to the module is a list of indices, and the output is the corresponding word embeddings.
 
-    Variables:
-        Embedding.weight (Tensor): the learnable weights of the module of shape (num_embeddings, embedding_dim) initialized from a normal distribution (mu=0, sigma=1).
+    Parameters:
+        Embedding.weight (Tensor): the learnable weights of the module of shape
+        (num_embeddings, embedding_dim) initialized from a normal distribution (mu=0, sigma=1).
 
     Dependencies:
         None.
@@ -30,18 +61,6 @@ class Embedding(nn.Module):
     def forward(self, input):
         """Look up the input list of indices in the embedding matrix."""
         return self.weight[input]
-
-
-def bert_embedding(
-    input_ids,  # : [batch, seqlen],
-    token_type_ids,  # [batch, seqlen],
-    position_embedding,  # : nn.Embedding,
-    token_embedding,  # : nn.Embedding,
-    token_type_embedding,  # : nn.Embedding,
-    layer_norm,  # : nn.Module,
-    dropout  # : nn.Module
-):
-    raise NotImplementedError
 
 
 class BertEmbedding(nn.Module):
@@ -91,15 +110,6 @@ def bert_mlp(token_activations,  # : torch.Tensor[batch_size,seq_length,768],
 
 class BertMLP(nn.Module):
     def __init__(self, input_size: int, intermediate_size: int):
-        super().__init__()
-        raise NotImplementedError
-
-    def forward(self, input):
-        raise NotImplementedError
-
-
-class LayerNorm(nn.Module):
-    def __init__(self, normalized_dim: int):
         super().__init__()
         raise NotImplementedError
 
