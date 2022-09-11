@@ -12,38 +12,40 @@ class LayerNorm(nn.Module):
     """
     Layer normalization. See https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html
 
-    Parameters:
+    Args:
         normalized_shape (int or list or torch.Size): input shape from an expected input of size
         [*, normalized_shape[0], normalized_shape[1], ..., normalized_shape[-1]]
         If a single integer is used, it is treated as a singleton list, and this module will
         normalize over the last dimension which is expected to be of that specific size.
 
-    Variables:
-        LayerNorm.weight: the learnable weights gamma of the module of shape normalized_shape.
+    Attributes:
+        LayerNorm.weight: The learnable weights gamma of the module of shape normalized_shape.
         The values are initialized to 1.
 
-        LayerNorm.bias: the learnable bias beta of the module of shape normalized_shape.
+        LayerNorm.bias: The learnable bias beta of the module of shape normalized_shape.
         The values are initialized to 0.
 
     Dependencies:
         None.
 
     Hints:
-
+        Norm over the last len(normalized_shape) dimensions, not simply all but the first dimension.
     """
 
     def __init__(self, normalized_shape: int):
         super().__init__()
+        self.normalized_shape = normalized_shape
         self.weight = nn.Parameter(t.ones(normalized_shape))
         self.bias = nn.Parameter(t.zeros(normalized_shape))
 
     def forward(self, input: TensorType[...]):
         """Applies Layer Normalization over a mini-batch of inputs."""
-        all_but_first_dims = tuple(range(1, len(input.shape)))  # (1, 2, ..., n-1)
-        var, mean = t.var_mean(input, all_but_first_dims, unbiased=False)
-        # Stack up to the dimension of input, e.g. (batch, 1, 1, ... 1)
-        var = rearrange(var, 'var -> var' + ' ()' * (len(input.shape) - 1))
-        mean = rearrange(mean, 'mean -> mean' + ' ()' * (len(input.shape) - 1))
+        num_normed_dims = self.weight.dim()
+        normalizing_dims = tuple(range(-num_normed_dims, 0))  # (-(n-1), ..., -2, -1)
+        var, mean = t.var_mean(input, normalizing_dims, unbiased=False)
+        # Stack up to the dimension of input
+        var = rearrange(var, 'x ... -> x ...' + ' ()' * num_normed_dims)
+        mean = rearrange(mean, 'x ... -> x ...' + ' ()' * num_normed_dims)
         eps = 1e-05
         return (input - mean) / t.sqrt(var + eps) * self.weight + self.bias
 
@@ -54,10 +56,10 @@ class Embedding(nn.Module):
     See https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html
 
     This module is often used to store word embeddings and retrieve them using indices. The input
-    to the module is a list of indices, and the output is the corresponding word embeddings.
+    to the module is a list of indices, and the summed_embeddings is the corresponding word embeddings.
 
-    Variables:
-        Embedding.weight (Tensor): the learnable weights of the module of shape
+    Args:
+        Embedding.weight (Tensor): The learnable weights of the module of shape
         (num_embeddings, embedding_dim) initialized from a normal distribution (mu=0, sigma=1).
 
     Dependencies:
@@ -83,13 +85,18 @@ class BertEmbedding(nn.Module):
     You should create Embedding parameters for positions, tokens, and token types/segments.
     BERT uses learned position embeddings rather than sinusoidal position embeddings.
 
-    The forward pass sums the three embeddings and passes them through LayerNorm and Dropout.
+    The forward pass sums the three embeddings then passes them through LayerNorm and Dropout.
 
-    Variables:
-        BertEmbedding.position_embedding (Embedding): position embeddings.
-        BertEmbedding.token_embedding (Embedding): token embeddings.
-        BertEmbedding.token_type_embedding (Embedding): token type/segment embeddings.
-        BertEmbedding.layer_norm (LayerNorm): layer normalization.
+    Args:
+        vocab_size, hidden_size, max_position_embeddings, type_vocab_size (int): Embeddings dims.
+        dropout: Dropout rate.
+
+    Attributes:
+        BertEmbedding.position_embedding (Embedding): Position embeddings.
+        BertEmbedding.token_embedding (Embedding): Token embeddings.
+        BertEmbedding.token_type_embedding (Embedding): Token type/segment embeddings.
+        BertEmbedding.layer_norm (LayerNorm): Layer normalization.
+        BertEmbedding.dropout (torch.nn.Dropout): Dropout layer.
 
     Dependencies:
         Embedding
@@ -97,20 +104,29 @@ class BertEmbedding(nn.Module):
         torch.nn.Dropout
 
     Hints:
-        Use torch.arange to create an ascending list of numbers to index into your position embeddings.
+        Use torch.arange to create an ascending integer list to index into your position embeddings.
         You'll have to take care to repeat/expand your tensors to the appropriate sizes so they sum.
     """
 
-    def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
-                 dropout: float):
+    def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
+                 type_vocab_size: int, dropout: float):
         super().__init__()
-        self.position_embedding = None
-        self.token_embedding = None
-        self.token_type_embedding = None
-        raise NotImplementedError
+        self.token_embedding = Embedding(vocab_size, hidden_size)
+        self.position_embedding = Embedding(max_position_embeddings, hidden_size)
+        self.token_type_embedding = Embedding(type_vocab_size, hidden_size)
+        self.layer_norm = LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_ids, token_type_ids):
-        raise NotImplementedError
+        num_batches, num_tokens = input_ids.shape
+        token_embeddings = self.token_embedding(input_ids)
+        token_type_embeddings = self.token_type_embedding(token_type_ids)
+        position_embeddings = self.position_embedding(t.arange(num_tokens))
+        # Expand position embeddings for each batch.
+        position_embeddings = repeat(position_embeddings, 't d -> b t d', b=num_batches)
+
+        embeddings = position_embeddings + token_embeddings + token_type_embeddings
+        return self.dropout(self.layer_norm(embeddings))
 
 
 def raw_attention_pattern(
