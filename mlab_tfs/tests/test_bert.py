@@ -159,57 +159,6 @@ class TestBertEmbedding(MLTest):
         )
 
 
-class TestGELU(MLTest):
-    """Test GELU functionality."""
-
-    @patch('torch.nn.functional.gelu')
-    def test_no_cheating(self, patched_function):
-        """Test that the student doesn't call the PyTorch version."""
-        gelu = bert_student.GELU()
-        random_input = t.randint(0, 10, (2, 3))
-        gelu(random_input)
-        patched_function.assert_not_called()
-
-    def test_gelu(self):
-        """Test bert_student.GELU for parity with bert_reference.gelu and torch.nn.GELU."""
-        student = bert_student.GELU()
-        reference1 = bert_reference.gelu
-        reference2 = t.nn.GELU()
-        t.random.manual_seed(0)
-        input = t.randn(20, 30)
-        self.assert_tensors_close(student(input), reference1(input))
-        self.assert_tensors_close(student(input), reference2(input))
-
-
-class TestBertMLP(MLTest):
-    """Test BERT MLP layer functionality."""
-
-    @patch('mlab_tfs.bert.bert_student.GELU.forward')
-    def test_calls_user_gelu(self, patched_gelu):
-        """Test that the user calls their own code."""
-        hidden_size = 768
-        intermediate_size = 4 * hidden_size
-        student = bert_student.BertMLP(hidden_size, intermediate_size)
-        input = t.randn(2, 3, hidden_size)
-        patched_gelu.return_value = t.randn(2, 3, intermediate_size)
-        student(input)
-        patched_gelu.assert_called()
-
-    def test_bert_mlp(self):
-        """Test bert_student.BertMLP for parity with bert_reference.BertMLP."""
-        hidden_size = 768
-        intermediate_size = 4 * hidden_size
-
-        t.random.manual_seed(0)
-        student = bert_student.BertMLP(hidden_size, intermediate_size)
-        t.random.manual_seed(0)
-        reference = bert_reference.BertMLP(hidden_size, intermediate_size)
-
-        t.random.manual_seed(0)
-        input = t.randn(2, 3, hidden_size)
-        self.assert_tensors_close(student(input), reference(input))
-
-
 class TestBertAttention(MLTest):
     """Test multi-headed self-attention functionality."""
 
@@ -309,7 +258,7 @@ class TestBertAttention(MLTest):
             "num_layers": 12,
             "num_heads": 12,
             "max_position_embeddings": 512,
-            "dropout": 0.0,  # not testing dropout!!
+            "dropout": 0.0,  # bert_student.MultiHeadedSelfAttention has no dropout
             "type_vocab_size": 2,
         }
         t.random.manual_seed(0)
@@ -356,6 +305,57 @@ class TestBertAttention(MLTest):
         #     theirs(input_activations),
         #     reference(input_activations),
         # )
+
+
+class TestGELU(MLTest):
+    """Test GELU functionality."""
+
+    @patch('torch.nn.functional.gelu')
+    def test_no_cheating(self, patched_function):
+        """Test that the student doesn't call the PyTorch version."""
+        gelu = bert_student.GELU()
+        random_input = t.randint(0, 10, (2, 3))
+        gelu(random_input)
+        patched_function.assert_not_called()
+
+    def test_gelu(self):
+        """Test bert_student.GELU for parity with bert_reference.gelu and torch.nn.GELU."""
+        student = bert_student.GELU()
+        reference1 = bert_reference.gelu
+        reference2 = t.nn.GELU()
+        t.random.manual_seed(0)
+        input = t.randn(20, 30)
+        self.assert_tensors_close(student(input), reference1(input))
+        self.assert_tensors_close(student(input), reference2(input))
+
+
+class TestBertMLP(MLTest):
+    """Test BERT MLP layer functionality."""
+
+    @patch('mlab_tfs.bert.bert_student.GELU.forward')
+    def test_calls_user_gelu(self, patched_gelu):
+        """Test that the user calls their own code."""
+        hidden_size = 768
+        intermediate_size = 4 * hidden_size
+        student = bert_student.BertMLP(hidden_size, intermediate_size)
+        input = t.randn(2, 3, hidden_size)
+        patched_gelu.return_value = t.randn(2, 3, intermediate_size)
+        student(input)
+        patched_gelu.assert_called()
+
+    def test_bert_mlp(self):
+        """Test bert_student.BertMLP for parity with bert_reference.BertMLP."""
+        hidden_size = 768
+        intermediate_size = 4 * hidden_size
+
+        t.random.manual_seed(0)
+        student = bert_student.BertMLP(hidden_size, intermediate_size)
+        t.random.manual_seed(0)
+        reference = bert_reference.BertMLP(hidden_size, intermediate_size)
+
+        t.random.manual_seed(0)
+        input = t.randn(2, 3, hidden_size)
+        self.assert_tensors_close(student(input), reference(input))
 
 
 class TestBertBlock(MLTest):
