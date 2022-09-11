@@ -77,9 +77,36 @@ class Embedding(nn.Module):
 
 
 class BertEmbedding(nn.Module):
+    """
+    Bert embedding process. See §3.4 of Attention Is All You Need.
+
+    You should create Embedding parameters for positions, tokens, and token types/segments.
+    BERT uses learned position embeddings rather than sinusoidal position embeddings.
+
+    The forward pass sums the three embeddings and passes them through LayerNorm and Dropout.
+
+    Variables:
+        BertEmbedding.position_embedding (Embedding): position embeddings.
+        BertEmbedding.token_embedding (Embedding): token embeddings.
+        BertEmbedding.token_type_embedding (Embedding): token type/segment embeddings.
+        BertEmbedding.layer_norm (LayerNorm): layer normalization.
+
+    Dependencies:
+        Embedding
+        LayerNorm
+        torch.nn.Dropout
+
+    Hints:
+        Use torch.arange to create an ascending list of numbers to index into your position embeddings.
+        You'll have to take care to repeat/expand your tensors to the appropriate sizes so they sum.
+    """
+
     def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
                  dropout: float):
         super().__init__()
+        self.position_embedding = None
+        self.token_embedding = None
+        self.token_type_embedding = None
         raise NotImplementedError
 
     def forward(self, input_ids, token_type_ids):
