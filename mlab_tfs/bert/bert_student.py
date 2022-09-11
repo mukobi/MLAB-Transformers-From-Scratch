@@ -200,7 +200,7 @@ class MultiHeadedSelfAttention(nn.Module):
         # Compute the attention weights.
         attn = t.einsum('bhqd, bhkd -> bhqk', [queries, keys]) / np.sqrt(queries.shape[-1])
         if attn_mask is not None:
-            attn.masked_fill_(attn_mask, 1e-9)
+            attn.masked_fill_(attn_mask, -1e9)
         attn = t.softmax(attn, dim=-1)
 
         # Weight and sum the values
