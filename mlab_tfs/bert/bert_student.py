@@ -171,8 +171,7 @@ class MultiHeadedSelfAttention(nn.Module):
         An efficient way of handling multiple heads is to first project the input into Q, K, and V
         vectors of size hidden_size then to split each of those along the hidden_size dimension
         so there are num_heads number of smaller vectors. At the end, concatenate them together
-        back into a vector of size hidden_size.
-        einops and einsum are particularly useful here.
+        back into a vector of size hidden_size. einops and einsum are particularly useful here.
     """
 
     def __init__(self, num_heads: int, hidden_size: int):

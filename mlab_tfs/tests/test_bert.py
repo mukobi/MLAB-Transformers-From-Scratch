@@ -162,95 +162,46 @@ class TestBertEmbedding(MLTest):
 class TestBertAttention(MLTest):
     """Test multi-headed self-attention functionality."""
 
-    def test_attention_fn(self):
-        reference = bert_reference.multi_head_self_attention
-        hidden_size = 768
-        batch_size = 2
-        seq_length = 3
-        num_heads = 12
-        token_activations = t.empty(
-            batch_size, seq_length, hidden_size).uniform_(-1, 1)
-        attention_pattern = t.rand(
-            batch_size, num_heads, seq_length, seq_length)
-        project_value = nn.Linear(hidden_size, hidden_size)
-        project_output = nn.Linear(hidden_size, hidden_size)
-        dropout = t.nn.Dropout(0.1)
-        dropout.eval()
-        self.assert_tensors_close(
-            bert_student.bert_attention(
-                token_activations=token_activations,
-                num_heads=num_heads,
-                attention_pattern=attention_pattern,
-                project_value=project_value,
-                # project_out=project_output,
-                project_output=project_output,
-                # dropout=dropout,
-            ),
-            reference(
-                token_activations=token_activations,
-                num_heads=num_heads,
-                attention_pattern=attention_pattern,
-                project_value=project_value,
-                project_out=project_output,
-                dropout=dropout,
-            )
-        )
+    @ patch('torch.nn.MultiheadAttention.forward')
+    def test_no_cheating(self, patched_attention):
+        """Test that the student doesn't call the PyTorch version."""
+        student = bert_student.MultiHeadedSelfAttention(
+            hidden_size=768, num_heads=12)
+        input_activations = t.rand((2, 3, 768))
+        student(input_activations)
+        patched_attention.assert_not_called()
 
-    def test_attention_pattern_fn(self):
-        reference = bert_reference.raw_attention_pattern
-        hidden_size = 768
-        token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
-        num_heads = 12
-        project_query = nn.Linear(hidden_size, hidden_size)
-        project_key = nn.Linear(hidden_size, hidden_size)
-        self.assert_tensors_close(
-            bert_student.raw_attention_pattern(
-                token_activations=token_activations,
-                num_heads=num_heads,
-                project_query=project_query,
-                project_key=project_key,
-            ),
-            reference(
-                token_activations=token_activations,
-                num_heads=num_heads,
-                project_query=project_query,
-                project_key=project_key,
-            )
-        )
+    def test_bert_attention_single_head(self):
+        """
+        Test bert_student.MultiHeadedSelfAttention for parity with
+        bert_reference.SelfAttentionLayer (num_heads = 1).
+        """
+        config = {
+            "vocab_size": 28996,
+            "intermediate_size": 3072,
+            "hidden_size": 768,
+            "num_layers": 12,
+            "num_heads": 1,
+            "max_position_embeddings": 512,
+            "dropout": 0.0,  # bert_student.MultiHeadedSelfAttention has no dropout
+            "type_vocab_size": 2,
+        }
+        t.random.manual_seed(0)
+        reference = bert_reference.SelfAttentionLayer(config)
+        reference.eval()
+        t.random.manual_seed(0)
+        student = bert_student.MultiHeadedSelfAttention(
+            hidden_size=config["hidden_size"], num_heads=config["num_heads"])
+        student.eval()
 
-    def test_attention_pattern_single_head(self):
-        """Note: Unused in the original MLAB repo."""
-        pass
-        # reference = bert_reference.raw_attention_pattern
-        # hidden_size = 768
-        # token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
-        # num_heads = 12
-        # project_query = nn.Linear(hidden_size, hidden_size)
-        # project_key = nn.Linear(hidden_size, hidden_size)
-        # head_size = hidden_size // num_heads
-        # project_query_ub = nn.Linear(hidden_size, head_size)
-        # project_query_ub.weight = nn.Parameter(
-        #     project_query.weight[:head_size])
-        # project_query_ub.bias = nn.Parameter(project_query.bias[:head_size])
-        # project_key_ub = nn.Linear(hidden_size, head_size)
-        # project_key_ub.weight = nn.Parameter(project_key.weight[:head_size])
-        # project_key_ub.bias = nn.Parameter(project_key.bias[:head_size])
-        # self.assertAllClose(
-        #     bert_sol.raw_attention_pattern(
-        #         token_activations=token_activations[0],
-        #         num_heads=num_heads,
-        #         project_query=project_query_ub,
-        #         project_key=project_key_ub,
-        #     ),
-        #     reference(
-        #         token_activations=token_activations,
-        #         num_heads=num_heads,
-        #         project_query=project_query,
-        #         project_key=project_key,
-        #     )[0, 0, :, :]
-        # )
+        input_activations = t.rand((2, 3, 768))
+        self.assert_tensors_close(student(input_activations), reference(input_activations))
 
-    def test_bert_attention(self):
+    def test_bert_attention_multi_head(self):
+        """
+        Test bert_student.MultiHeadedSelfAttention for parity with
+        bert_reference.SelfAttentionLayer (num_heads = 12).
+        """
         config = {
             "vocab_size": 28996,
             "intermediate_size": 3072,
@@ -265,46 +216,12 @@ class TestBertAttention(MLTest):
         reference = bert_reference.SelfAttentionLayer(config)
         reference.eval()
         t.random.manual_seed(0)
-        theirs = bert_student.MultiHeadedSelfAttention(
-            hidden_size=config["hidden_size"],
-            num_heads=config["num_heads"],
-            # dropout=config["dropout"],
-        )
-        theirs.eval()
-        input_activations = t.rand((2, 3, 768))
-        self.assert_tensors_close(
-            theirs(input_activations),
-            reference(input_activations)
-        )
+        student = bert_student.MultiHeadedSelfAttention(
+            hidden_size=config["hidden_size"], num_heads=config["num_heads"])
+        student.eval()
 
-    def test_bert_attention_pattern(self):
-        """Note: Unused in the original MLAB repo."""
-        pass
-        # config = {
-        #     "vocab_size": 28996,
-        #     "intermediate_size": 3072,
-        #     "hidden_size": 768,
-        #     "num_layers": 12,
-        #     "num_heads": 12,
-        #     "max_position_embeddings": 512,
-        #     "dropout": 0.1,
-        #     "type_vocab_size": 2,
-        # }
-        # t.random.manual_seed(0)
-        # reference = bert_reference.AttentionPattern(config)
-        # reference.eval()
-        # t.random.manual_seed(0)
-        # theirs = bert_sol.Atten(
-        #     hidden_size=config["hidden_size"],
-        #     num_heads=config["num_heads"],
-        #     dropout=config["dropout"],
-        # )
-        # theirs.eval()
-        # input_activations = t.rand((2, 3, 768))
-        # self.assertAllClose(
-        #     theirs(input_activations),
-        #     reference(input_activations),
-        # )
+        input_activations = t.rand((2, 3, 768))
+        self.assert_tensors_close(student(input_activations), reference(input_activations))
 
 
 class TestGELU(MLTest):
