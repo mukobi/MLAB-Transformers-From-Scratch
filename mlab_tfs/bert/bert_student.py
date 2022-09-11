@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import torch as t
 from torch import einsum
 from torch import nn
@@ -137,13 +138,19 @@ class BertEmbedding(nn.Module):
 
 class GELU(nn.Module):
     """
-    Applies the Gaussian Error Linear Units function with the tanh approximation.
+    Applies the Gaussian Error Linear Units function with no approximation.
     See https://pytorch.org/docs/stable/generated/torch.nn.GELU.html
+
+    GELU(x) = x * Φ(x) where Φ(x) is the Cumulative Distribution Function for Gaussian Distribution.
+
+    Hint:
+        The CDF of a normal distribution with mean 0 and variance 1 is
+        0.5 * (1 + erf(value / sqrt(2))) where erf is the error function (torch.erf).
     """
 
     def forward(self, input):
         """Apply the GELU function."""
-        raise NotImplementedError
+        return input * 0.5 * (1 + t.erf(input / np.sqrt(2)))
 
 
 def bert_mlp(token_activations,  # : torch.Tensor[batch_size,seq_length,768],
