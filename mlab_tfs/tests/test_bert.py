@@ -52,6 +52,56 @@ def mapkey(key):
     return key
 
 
+class TestBertLayerNorm(MLTest):
+    """Test layer normalization functionality."""
+
+    @ patch('torch.nn.functional.layer_norm')
+    def test_no_cheating(self, patched_function):
+        """Test that the student doesn't call the PyTorch version."""
+        ln1 = bert_student.LayerNorm(2)
+        input = t.randn(10, 2)
+        ln1(input)
+        patched_function.assert_not_called()
+
+    def test_layer_norm_2d(self):
+        """Test a 2D input tensor."""
+        ln1 = bert_student.LayerNorm(10)
+        ln2 = nn.LayerNorm(10)
+        t.random.manual_seed(42)
+        input = t.randn(20, 10)
+        self.assert_tensors_close(ln1(input), ln2(input))
+
+    def test_layer_norm_3d(self):
+        """Test a 3D input tensor."""
+        ln1 = bert_student.LayerNorm((10, 5))
+        ln2 = nn.LayerNorm((10, 5))
+        t.random.manual_seed(42)
+        input = t.randn(20, 10, 5)
+        self.assert_tensors_close(ln1(input), ln2(input))
+
+    def test_layer_norm_transformer(self):
+        """Test a transformer-sized input tensor."""
+        ln1 = bert_student.LayerNorm(768)
+        ln2 = nn.LayerNorm(768)
+        t.random.manual_seed(42)
+        input = t.randn(20, 32, 768)
+        self.assert_tensors_close(ln1(input), ln2(input))
+
+    def test_layer_norm_variables(self):
+        """Modify weight and bias and test for the same output."""
+        ln1 = bert_student.LayerNorm(10)
+        ln2 = nn.LayerNorm(10)
+        t.random.manual_seed(42)
+        weight = nn.Parameter(t.randn(10))
+        bias = nn.Parameter(t.randn(10))
+        ln1.weight.set = weight
+        ln2.weight.set = weight
+        ln1.bias = bias
+        ln2.bias = bias
+        input = t.randn(20, 10)
+        self.assert_tensors_close(ln1(input), ln2(input))
+
+
 class TestBertEmbedding(MLTest):
     """Test embedding functionality."""
 
@@ -102,6 +152,29 @@ class TestBertEmbedding(MLTest):
         self.assert_tensors_close(
             yours(input_ids=input_ids, token_type_ids=tt_ids),
             reference(input_ids=input_ids, token_type_ids=tt_ids)
+        )
+
+
+class TestBertMLP(MLTest):
+    def test_bert_mlp(self):
+        reference = bert_reference.bert_mlp
+        hidden_size = 768
+        intermediate_size = 4 * hidden_size
+
+        token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
+        mlp_1 = nn.Linear(hidden_size, intermediate_size)
+        mlp_2 = nn.Linear(intermediate_size, hidden_size)
+        dropout = t.nn.Dropout(0.1)
+        dropout.eval()
+        self.assert_tensors_close(
+            bert_student.bert_mlp(token_activations=token_activations,
+                                  linear_1=mlp_1, linear_2=mlp_2),
+            reference(
+                token_activations=token_activations,
+                linear_1=mlp_1,
+                linear_2=mlp_2,
+                dropout=dropout,
+            )
         )
 
 
@@ -251,79 +324,6 @@ class TestBertAttention(MLTest):
         #     theirs(input_activations),
         #     reference(input_activations),
         # )
-
-
-class TestBertMLP(MLTest):
-    def test_bert_mlp(self):
-        reference = bert_reference.bert_mlp
-        hidden_size = 768
-        intermediate_size = 4 * hidden_size
-
-        token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
-        mlp_1 = nn.Linear(hidden_size, intermediate_size)
-        mlp_2 = nn.Linear(intermediate_size, hidden_size)
-        dropout = t.nn.Dropout(0.1)
-        dropout.eval()
-        self.assert_tensors_close(
-            bert_student.bert_mlp(token_activations=token_activations,
-                                  linear_1=mlp_1, linear_2=mlp_2),
-            reference(
-                token_activations=token_activations,
-                linear_1=mlp_1,
-                linear_2=mlp_2,
-                dropout=dropout,
-            )
-        )
-
-
-class TestBertLayerNorm(MLTest):
-    """Test layer normalization functionality."""
-
-    @ patch('torch.nn.functional.layer_norm')
-    def test_no_cheating(self, patched_function):
-        """Test that the student doesn't call the PyTorch version."""
-        ln1 = bert_student.LayerNorm(2)
-        input = t.randn(10, 2)
-        ln1(input)
-        patched_function.assert_not_called()
-
-    def test_layer_norm_2d(self):
-        """Test a 2D input tensor."""
-        ln1 = bert_student.LayerNorm(10)
-        ln2 = nn.LayerNorm(10)
-        t.random.manual_seed(42)
-        input = t.randn(20, 10)
-        self.assert_tensors_close(ln1(input), ln2(input))
-
-    def test_layer_norm_3d(self):
-        """Test a 3D input tensor."""
-        ln1 = bert_student.LayerNorm((10, 5))
-        ln2 = nn.LayerNorm((10, 5))
-        t.random.manual_seed(42)
-        input = t.randn(20, 10, 5)
-        self.assert_tensors_close(ln1(input), ln2(input))
-
-    def test_layer_norm_transformer(self):
-        """Test a transformer-sized input tensor."""
-        ln1 = bert_student.LayerNorm(768)
-        ln2 = nn.LayerNorm(768)
-        t.random.manual_seed(42)
-        input = t.randn(20, 32, 768)
-        self.assert_tensors_close(ln1(input), ln2(input))
-
-    def test_layer_norm_variables(self):
-        """Modify weight and bias and test for the same output."""
-        ln1 = bert_student.LayerNorm(10)
-        ln2 = nn.LayerNorm(10)
-        t.random.manual_seed(42)
-        weight = nn.Parameter(t.randn(10))
-        bias = nn.Parameter(t.randn(10))
-        ln1.weight.set = weight
-        ln2.weight.set = weight
-        ln1.bias = bias
-        ln2.bias = bias
-        input = t.randn(20, 10)
-        self.assert_tensors_close(ln1(input), ln2(input))
 
 
 class TestBertBlock(MLTest):
