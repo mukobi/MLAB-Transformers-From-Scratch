@@ -39,7 +39,7 @@ class LayerNorm(nn.Module):
         self.bias = nn.Parameter(t.zeros(normalized_shape))
 
     def forward(self, input: TensorType[...]):
-        """Applies Layer Normalization over a mini-batch of inputs."""
+        """Apply Layer Normalization over a mini-batch of inputs."""
         num_normed_dims = self.weight.dim()
         normalizing_dims = tuple(range(-num_normed_dims, 0))  # (-(n-1), ..., -2, -1)
         var, mean = t.var_mean(input, normalizing_dims, unbiased=False)
@@ -82,7 +82,7 @@ class BertEmbedding(nn.Module):
     """
     Bert embedding process. See §3.4 of Attention Is All You Need.
 
-    You should create Embedding parameters for positions, tokens, and token types/segments.
+    You should create Embedding parameters for tokens, positions, and token types/segments.
     BERT uses learned position embeddings rather than sinusoidal position embeddings.
 
     The forward pass sums the three embeddings then passes them through LayerNorm and Dropout.
@@ -92,18 +92,23 @@ class BertEmbedding(nn.Module):
         dropout: Dropout rate.
 
     Attributes:
-        BertEmbedding.position_embedding (Embedding): Position embeddings.
         BertEmbedding.token_embedding (Embedding): Token embeddings.
+
+        BertEmbedding.position_embedding (Embedding): Position embeddings.
+
         BertEmbedding.token_type_embedding (Embedding): Token type/segment embeddings.
+
         BertEmbedding.layer_norm (LayerNorm): Layer normalization.
+
         BertEmbedding.dropout (torch.nn.Dropout): Dropout layer.
 
     Dependencies:
-        Embedding
-        LayerNorm
-        torch.nn.Dropout
+        Embedding, LayerNorm, torch.nn.Dropout
 
     Hints:
+        Initialization order matters for our seeded random tests. Initialize token_embedding, then
+        position_embedding, then token_type_embedding.
+
         Use torch.arange to create an ascending integer list to index into your position embeddings.
         You'll have to take care to repeat/expand your tensors to the appropriate sizes so they sum.
     """
@@ -118,6 +123,7 @@ class BertEmbedding(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_ids, token_type_ids):
+        """Add embeddings and apply layer norm and dropout."""
         num_batches, num_tokens = input_ids.shape
         token_embeddings = self.token_embedding(input_ids)
         token_type_embeddings = self.token_type_embedding(token_type_ids)
@@ -127,6 +133,32 @@ class BertEmbedding(nn.Module):
 
         embeddings = position_embeddings + token_embeddings + token_type_embeddings
         return self.dropout(self.layer_norm(embeddings))
+
+
+class GELU(nn.Module):
+    """
+    Applies the Gaussian Error Linear Units function with the tanh approximation.
+    See https://pytorch.org/docs/stable/generated/torch.nn.GELU.html
+    """
+
+    def forward(self, input):
+        """Apply the GELU function."""
+        raise NotImplementedError
+
+
+def bert_mlp(token_activations,  # : torch.Tensor[batch_size,seq_length,768],
+             linear_1: nn.Module, linear_2: nn.Module
+             ):  # -> torch.Tensor[batch_size, seq_length, 768]
+    raise NotImplementedError
+
+
+class BertMLP(nn.Module):
+    def __init__(self, input_size: int, intermediate_size: int):
+        super().__init__()
+        raise NotImplementedError
+
+    def forward(self, input):
+        raise NotImplementedError
 
 
 def raw_attention_pattern(
@@ -155,21 +187,6 @@ class MultiHeadedSelfAttention(nn.Module):
         raise NotImplementedError
 
     def forward(self, input):  # b n l
-        raise NotImplementedError
-
-
-def bert_mlp(token_activations,  # : torch.Tensor[batch_size,seq_length,768],
-             linear_1: nn.Module, linear_2: nn.Module
-             ):  # -> torch.Tensor[batch_size, seq_length, 768]
-    raise NotImplementedError
-
-
-class BertMLP(nn.Module):
-    def __init__(self, input_size: int, intermediate_size: int):
-        super().__init__()
-        raise NotImplementedError
-
-    def forward(self, input):
         raise NotImplementedError
 
 
