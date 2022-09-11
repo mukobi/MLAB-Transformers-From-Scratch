@@ -155,7 +155,30 @@ class TestBertEmbedding(MLTest):
         )
 
 
+class TestGELU(MLTest):
+    """Test GELU functionality."""
+
+    @patch('torch.nn.GELU.forward')
+    def test_no_cheating(self, patched_function):
+        """Test that the student doesn't call the PyTorch version."""
+        emb1 = bert_student.Embedding(10, 5)
+        random_input = t.randint(0, 10, (2, 3))
+        emb1(random_input)
+        patched_function.assert_not_called()
+
+    def test_gelu(self):
+        """Test bert_student.GELU for parity with bert_reference.gelu and torch.nn.GELU."""
+        student = bert_student.GELU()
+        reference1 = bert_reference.gelu
+        reference2 = t.nn.GELU()
+        t.random.manual_seed(0)
+        input = t.randn(20, 30)
+        self.assert_tensors_close(student(input), reference1(input))
+        self.assert_tensors_close(student(input), reference2(input))
+
+
 class TestBertMLP(MLTest):
+
     def test_bert_mlp(self):
         reference = bert_reference.bert_mlp
         hidden_size = 768
