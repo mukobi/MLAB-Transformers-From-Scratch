@@ -15,6 +15,8 @@ from mlab_tfs.utils.mlab_utils import itpeek
 
 
 class MLTest(unittest.TestCase):
+    """Base test case class."""
+
     def assert_tensors_close(self, student_out: TensorType, reference_out: TensorType, tol=1e-5):
         """Assert that two tensors have the same size and all elements are close."""
         message = f'Mismatched shapes!\nExpected:\n{student_out.shape}\nFound:\n{reference_out.shape}'
@@ -56,12 +58,12 @@ class TestBertLayerNorm(MLTest):
     """Test layer normalization functionality."""
 
     @ patch('torch.nn.functional.layer_norm')
-    def test_no_cheating(self, patched_function):
+    def test_no_cheating(self, patched_layer_norm):
         """Test that the student doesn't call the PyTorch version."""
         ln1 = bert_student.LayerNorm(2)
         input = t.randn(10, 2)
         ln1(input)
-        patched_function.assert_not_called()
+        patched_layer_norm.assert_not_called()
 
     def test_layer_norm_2d(self):
         """Test a 2D input tensor."""
@@ -105,13 +107,15 @@ class TestBertLayerNorm(MLTest):
 class TestBertEmbedding(MLTest):
     """Test embedding functionality."""
 
+    @patch('torch.nn.functional.layer_norm')
     @patch('torch.nn.Embedding.forward')
-    def test_no_cheating(self, patched_function):
+    def test_no_cheating(self, patched_embedding, patched_layer_norm):
         """Test that the student doesn't call the PyTorch version."""
         emb1 = bert_student.Embedding(10, 5)
         random_input = t.randint(0, 10, (2, 3))
         emb1(random_input)
-        patched_function.assert_not_called()
+        patched_embedding.assert_not_called()
+        patched_layer_norm.assert_not_called()
 
     def test_attribute_types(self):
         """Test the types of the module's attributes."""
@@ -181,7 +185,7 @@ class TestBertMLP(MLTest):
     """Test BERT MLP layer functionality."""
 
     @patch('mlab_tfs.bert.bert_student.GELU.forward')
-    def test_calls_user_code(self, patched_gelu):
+    def test_calls_user_gelu(self, patched_gelu):
         """Test that the user calls their own code."""
         hidden_size = 768
         intermediate_size = 4 * hidden_size
