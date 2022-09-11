@@ -27,6 +27,7 @@ class MLTest(unittest.TestCase):
 # Utility functions.
 # TODO move somewhere better
 def get_pretrained_bert():
+    """Get just the pretrained reference BERT, discarding the HF BERT."""
     pretrained_bert, _ = bert_reference.my_bert_from_hf_weights()
     return pretrained_bert
 
@@ -53,6 +54,25 @@ def mapkey(key):
 
 class TestBertEmbedding(MLTest):
     """Test embedding functionality."""
+
+    @patch('torch.nn.Embedding.forward')
+    def test_no_cheating(self, patched_function):
+        """Test that the student doesn't call the PyTorch version."""
+        emb1 = bert_student.Embedding(10, 5)
+        random_input = t.randint(0, 10, (2, 3))
+        emb1(random_input)
+        patched_function.assert_not_called()
+
+    @patch('mlab_tfs.bert.bert_student.Embedding.forward')
+    @patch('mlab_tfs.bert.bert_student.LayerNorm.forward')
+    def test_calls_user_code(self, patched_function_a, patched_function_b):
+        """Test that the student calls their own code."""
+        emb1 = bert_student.BertEmbedding(28996, 768, 512, 2, 0.1)
+        input_ids = t.randint(0, 2900, (2, 3))
+        tt_ids = t.randint(0, 2, (2, 3))
+        emb1(input_ids, tt_ids)
+        patched_function_a.assert_called()
+        patched_function_b.assert_called()
 
     def test_embedding(self):
         """Test bert_student.Embedding for parity with nn.Embedding."""
@@ -260,14 +280,13 @@ class TestBertMLP(MLTest):
 class TestBertLayerNorm(MLTest):
     """Test layer normalization functionality."""
 
-    # TODO test that F.LayerNorm is not called
     @patch('torch.nn.functional.layer_norm')
-    def test_no_cheating(self, layer_norm_patched):
+    def test_no_cheating(self, patched_function):
         """Test that the student doesn't call the PyTorch version."""
         ln1 = bert_student.LayerNorm(2)
         input = t.randn(10, 2)
         ln1(input)
-        layer_norm_patched.assert_not_called()
+        patched_function.assert_not_called()
 
     def test_layer_norm_2d(self):
         """Test a 2D input tensor."""
