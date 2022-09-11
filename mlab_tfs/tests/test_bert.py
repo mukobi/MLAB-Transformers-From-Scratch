@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import re
 
 import torch as t
@@ -258,6 +259,15 @@ class TestBertMLP(MLTest):
 
 class TestBertLayerNorm(MLTest):
     """Test layer normalization functionality."""
+
+    # TODO test that F.LayerNorm is not called
+    @patch('torch.nn.functional.layer_norm')
+    def test_no_cheating(self, layer_norm_patched):
+        """Test that the student doesn't call the PyTorch version."""
+        ln1 = bert_student.LayerNorm(2)
+        input = t.randn(10, 2)
+        ln1(input)
+        layer_norm_patched.assert_not_called()
 
     def test_layer_norm_2d(self):
         """Test a 2D input tensor."""
