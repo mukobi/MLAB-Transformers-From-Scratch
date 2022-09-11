@@ -63,16 +63,14 @@ class TestBertEmbedding(MLTest):
         emb1(random_input)
         patched_function.assert_not_called()
 
-    @patch('mlab_tfs.bert.bert_student.Embedding.forward')
-    @patch('mlab_tfs.bert.bert_student.LayerNorm.forward')
-    def test_calls_user_code(self, patched_function_a, patched_function_b):
-        """Test that the student calls their own code."""
+    def test_attribute_types(self):
+        """Test the types of the module's attributes."""
         emb1 = bert_student.BertEmbedding(28996, 768, 512, 2, 0.1)
-        input_ids = t.randint(0, 2900, (2, 3))
-        tt_ids = t.randint(0, 2, (2, 3))
-        emb1(input_ids, tt_ids)
-        patched_function_a.assert_called()
-        patched_function_b.assert_called()
+        self.assertIsInstance(emb1.position_embedding, bert_student.Embedding)
+        self.assertIsInstance(emb1.token_embedding, bert_student.Embedding)
+        self.assertIsInstance(emb1.token_type_embedding, bert_student.Embedding)
+        self.assertIsInstance(emb1.layer_norm, bert_student.LayerNorm)
+        self.assertIsInstance(emb1.dropout, t.nn.Dropout)
 
     def test_embedding(self):
         """Test bert_student.Embedding for parity with nn.Embedding."""
@@ -92,6 +90,7 @@ class TestBertEmbedding(MLTest):
             "type_vocab_size": 2,
             "dropout": 0.1,
         }
+        t.random.manual_seed(0)
         input_ids = t.randint(0, 2900, (2, 3))
         tt_ids = t.randint(0, 2, (2, 3))
         t.random.manual_seed(0)
@@ -280,7 +279,7 @@ class TestBertMLP(MLTest):
 class TestBertLayerNorm(MLTest):
     """Test layer normalization functionality."""
 
-    @patch('torch.nn.functional.layer_norm')
+    @ patch('torch.nn.functional.layer_norm')
     def test_no_cheating(self, patched_function):
         """Test that the student doesn't call the PyTorch version."""
         ln1 = bert_student.LayerNorm(2)
@@ -302,6 +301,14 @@ class TestBertLayerNorm(MLTest):
         ln2 = nn.LayerNorm((10, 5))
         t.random.manual_seed(42)
         input = t.randn(20, 10, 5)
+        self.assert_tensors_close(ln1(input), ln2(input))
+
+    def test_layer_norm_transformer(self):
+        """Test a transformer-sized input tensor."""
+        ln1 = bert_student.LayerNorm(768)
+        ln2 = nn.LayerNorm(768)
+        t.random.manual_seed(42)
+        input = t.randn(20, 32, 768)
         self.assert_tensors_close(ln1(input), ln2(input))
 
     def test_layer_norm_variables(self):
