@@ -185,12 +185,14 @@ class BertMLP(nn.Module):
 
     def __init__(self, hidden_size: int, intermediate_size: int):
         super().__init__()
-        raise NotImplementedError
+        self.lin1 = nn.Linear(hidden_size, intermediate_size)
+        self.gelu = GELU()
+        self.lin2 = nn.Linear(intermediate_size, hidden_size)
 
     def forward(self, input: TensorType['batch_size', 'seq_length', 'hidden_size']
                 ) -> TensorType['batch_size', 'seq_length', 'hidden_size']:
         """Apply linear projection, GELU, and another linear projection."""
-        raise NotImplementedError
+        return self.lin2(self.gelu(self.lin1(input)))
 
 
 def raw_attention_pattern(

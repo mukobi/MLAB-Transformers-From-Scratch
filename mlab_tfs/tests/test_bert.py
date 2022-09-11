@@ -180,36 +180,30 @@ class TestGELU(MLTest):
 class TestBertMLP(MLTest):
     """Test BERT MLP layer functionality."""
 
-    # def test_bert_mlp_function(self):
-    #     reference = bert_reference.bert_mlp
-    #     hidden_size = 768
-    #     intermediate_size = 4 * hidden_size
-
-    #     token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
-    #     mlp_1 = nn.Linear(hidden_size, intermediate_size)
-    #     mlp_2 = nn.Linear(intermediate_size, hidden_size)
-    #     dropout = t.nn.Dropout(0.1)
-    #     dropout.eval()
-    #     self.assert_tensors_close(
-    #         bert_student.bert_mlp(token_activations=token_activations,
-    #                               linear_1=mlp_1, linear_2=mlp_2),
-    #         reference(
-    #             token_activations=token_activations,
-    #             linear_1=mlp_1,
-    #             linear_2=mlp_2,
-    #             dropout=dropout,
-    #         )
-    #     )
+    @patch('mlab_tfs.bert.bert_student.GELU.forward')
+    def test_calls_user_code(self, patched_gelu):
+        """Test that the user calls their own code."""
+        hidden_size = 768
+        intermediate_size = 4 * hidden_size
+        student = bert_student.BertMLP(hidden_size, intermediate_size)
+        input = t.randn(2, 3, hidden_size)
+        patched_gelu.return_value = t.randn(2, 3, intermediate_size)
+        student(input)
+        patched_gelu.assert_called()
 
     def test_bert_mlp(self):
         """Test bert_student.BertMLP for parity with bert_reference.BertMLP."""
         hidden_size = 768
         intermediate_size = 4 * hidden_size
+
+        t.random.manual_seed(0)
         student = bert_student.BertMLP(hidden_size, intermediate_size)
+        t.random.manual_seed(0)
         reference = bert_reference.BertMLP(hidden_size, intermediate_size)
 
         t.random.manual_seed(0)
         input = t.randn(2, 3, hidden_size)
+        self.assert_tensors_close(student(input), reference(input))
 
 
 class TestBertAttention(MLTest):
