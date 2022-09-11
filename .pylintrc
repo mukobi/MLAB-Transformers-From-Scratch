@@ -5,4 +5,5 @@
 # expressions are accepted.
 generated-members=torch.*|t.*
 disable=
-    W0622
+    W0622,
+    R0913, # too many arguments
