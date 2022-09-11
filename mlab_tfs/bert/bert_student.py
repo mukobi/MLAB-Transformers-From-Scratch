@@ -1,8 +1,8 @@
 import math
+import typing
 
 import numpy as np
 import torch as t
-from torch import einsum
 from torch import nn
 from torch.nn import functional as F
 from einops import rearrange, repeat
@@ -183,10 +183,36 @@ class MultiHeadedSelfAttention(nn.Module):
         self.project_value = nn.Linear(hidden_size, hidden_size)
         self.project_output = nn.Linear(hidden_size, hidden_size)
 
-    def forward(self, input: TensorType['batch', 'seq_length', 'hidden_size']
+    def forward(self, input: TensorType['batch', 'seq_length', 'hidden_size'],
+                attn_mask: typing.Optional[TensorType['batch', 'seq_length']] = None
                 ) -> TensorType['batch', 'seq_length', 'hidden_size']:
-        """Apply multi-headed scaled dot product self attention."""
-        raise NotImplementedError
+        """Apply multi-headed scaled dot product self attention with an optional attention mask."""
+        # Project input into Q, K, and V vectors
+        queries = self.project_query(input)
+        keys = self.project_key(input)
+        values = self.project_value(input)
+
+        # Split each along the hidden dimension
+        split_pattern = 'batch length (heads d_k) -> batch heads length d_k'
+        queries = rearrange(queries, split_pattern, heads=self.num_heads)
+        keys = rearrange(keys, split_pattern, heads=self.num_heads)
+        values = rearrange(values, split_pattern, heads=self.num_heads)
+
+        # Compute the attention weights.
+        attn = t.einsum('bhqd, bhkd -> bhqk', [queries, keys]) / np.sqrt(queries.shape[-1])
+        if attn_mask is not None:
+            attn.masked_fill_(attn_mask, 1e-9)
+        attn = t.softmax(attn, dim=-1)
+
+        # Weight and sum the values
+        values = t.einsum('bhkd, bhqk -> bhqd', [values, attn])
+
+        # Concatenate
+        values = rearrange(values, 'batch heads length d_k -> batch length (heads d_k)')
+
+        # Project into the output space
+        output = self.project_output(values)
+        return output
 
 
 class GELU(nn.Module):
