@@ -81,15 +81,20 @@ class Embedding(nn.Module):
 
 class BertEmbedding(nn.Module):
     """
-    Bert embedding process. See §3.4 of Attention Is All You Need.
+    BERT embedding layer.
+
+    See §3.4 of Attention Is All You Need https://arxiv.org/pdf/1706.03762.pdf#page=5
 
     You should create Embedding parameters for tokens, positions, and token types/segments.
     BERT uses learned position embeddings rather than sinusoidal position embeddings.
 
     The forward pass sums the three embeddings then passes them through LayerNorm and Dropout.
 
+    Note that BERT does not scale the embeddings by sqrt(d_model).
+
     Args:
         vocab_size, hidden_size, max_position_embeddings, type_vocab_size (int): Embeddings dims.
+
         dropout: Dropout rate.
 
     Attributes:
@@ -101,10 +106,10 @@ class BertEmbedding(nn.Module):
 
         BertEmbedding.layer_norm (LayerNorm): Layer normalization.
 
-        BertEmbedding.dropout (torch.nn.Dropout): Dropout layer.
+        BertEmbedding.dropout (nn.Dropout): Dropout layer.
 
     Dependencies:
-        Embedding, LayerNorm, torch.nn.Dropout
+        Embedding, LayerNorm
 
     Hints:
         Initialization order matters for our seeded random tests. Initialize token_embedding, then
@@ -143,6 +148,9 @@ class GELU(nn.Module):
 
     GELU(x) = x * Φ(x) where Φ(x) is the Cumulative Distribution Function for Gaussian Distribution.
 
+    Dependencies:
+        None.
+
     Hint:
         The CDF of a normal distribution with mean 0 and variance 1 is
         0.5 * (1 + erf(value / sqrt(2))) where erf is the error function (torch.erf).
@@ -153,18 +161,35 @@ class GELU(nn.Module):
         return input * 0.5 * (1 + t.erf(input / np.sqrt(2)))
 
 
-def bert_mlp(token_activations,  # : torch.Tensor[batch_size,seq_length,768],
-             linear_1: nn.Module, linear_2: nn.Module
-             ):  # -> torch.Tensor[batch_size, seq_length, 768]
-    raise NotImplementedError
-
-
 class BertMLP(nn.Module):
-    def __init__(self, input_size: int, intermediate_size: int):
+    """
+    BERT MLP/fully-connected feed forward network layers.
+    See 3.3 in Attention Is All You Need https://arxiv.org/pdf/1706.03762.pdf#page=5
+
+    Implement 2 linear layers that go from hidden_size to intermediate_size and back
+    with a GELU activation in the middle.
+
+    Args:
+        hidden_size (int): Token embedding size.
+
+        intermediate_size (int): Intermediate hidden layer size.
+
+    Attributes:
+        BertMLP.lin1 (nn.Linear): First linear layer.
+
+        BertMLP.lin2 (nn.Linear): Second linear layer.
+
+    Dependencies:
+        GELU
+    """
+
+    def __init__(self, hidden_size: int, intermediate_size: int):
         super().__init__()
         raise NotImplementedError
 
-    def forward(self, input):
+    def forward(self, input: TensorType['batch_size', 'seq_length', 'hidden_size']
+                ) -> TensorType['batch_size', 'seq_length', 'hidden_size']:
+        """Apply linear projection, GELU, and another linear projection."""
         raise NotImplementedError
 
 

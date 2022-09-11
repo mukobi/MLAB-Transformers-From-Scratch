@@ -158,12 +158,12 @@ class TestBertEmbedding(MLTest):
 class TestGELU(MLTest):
     """Test GELU functionality."""
 
-    @patch('torch.nn.GELU.forward')
+    @patch('torch.nn.functional.gelu')
     def test_no_cheating(self, patched_function):
         """Test that the student doesn't call the PyTorch version."""
-        emb1 = bert_student.Embedding(10, 5)
+        gelu = bert_student.GELU()
         random_input = t.randint(0, 10, (2, 3))
-        emb1(random_input)
+        gelu(random_input)
         patched_function.assert_not_called()
 
     def test_gelu(self):
@@ -178,27 +178,38 @@ class TestGELU(MLTest):
 
 
 class TestBertMLP(MLTest):
+    """Test BERT MLP layer functionality."""
+
+    # def test_bert_mlp_function(self):
+    #     reference = bert_reference.bert_mlp
+    #     hidden_size = 768
+    #     intermediate_size = 4 * hidden_size
+
+    #     token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
+    #     mlp_1 = nn.Linear(hidden_size, intermediate_size)
+    #     mlp_2 = nn.Linear(intermediate_size, hidden_size)
+    #     dropout = t.nn.Dropout(0.1)
+    #     dropout.eval()
+    #     self.assert_tensors_close(
+    #         bert_student.bert_mlp(token_activations=token_activations,
+    #                               linear_1=mlp_1, linear_2=mlp_2),
+    #         reference(
+    #             token_activations=token_activations,
+    #             linear_1=mlp_1,
+    #             linear_2=mlp_2,
+    #             dropout=dropout,
+    #         )
+    #     )
 
     def test_bert_mlp(self):
-        reference = bert_reference.bert_mlp
+        """Test bert_student.BertMLP for parity with bert_reference.BertMLP."""
         hidden_size = 768
         intermediate_size = 4 * hidden_size
+        student = bert_student.BertMLP(hidden_size, intermediate_size)
+        reference = bert_reference.BertMLP(hidden_size, intermediate_size)
 
-        token_activations = t.empty(2, 3, hidden_size).uniform_(-1, 1)
-        mlp_1 = nn.Linear(hidden_size, intermediate_size)
-        mlp_2 = nn.Linear(intermediate_size, hidden_size)
-        dropout = t.nn.Dropout(0.1)
-        dropout.eval()
-        self.assert_tensors_close(
-            bert_student.bert_mlp(token_activations=token_activations,
-                                  linear_1=mlp_1, linear_2=mlp_2),
-            reference(
-                token_activations=token_activations,
-                linear_1=mlp_1,
-                linear_2=mlp_2,
-                dropout=dropout,
-            )
-        )
+        t.random.manual_seed(0)
+        input = t.randn(2, 3, hidden_size)
 
 
 class TestBertAttention(MLTest):

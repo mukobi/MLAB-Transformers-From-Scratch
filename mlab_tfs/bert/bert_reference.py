@@ -51,8 +51,18 @@ class BertEmbedding(Module):
         return self.token_embedding.unembed(embeddings)
 
 
-def bert_mlp(token_activations, linear_1, linear_2, dropout):
-    return dropout(linear_2(gelu(linear_1(token_activations))))
+def bert_mlp(token_activations, linear_1, linear_2):
+    return linear_2(gelu(linear_1(token_activations)))
+
+
+class BertMLP(Module):
+    def __init__(self, input_size: int, intermediate_size: int):
+        super().__init__()
+        self.lin1 = t.nn.Linear(input_size, intermediate_size)
+        self.lin2 = t.nn.Linear(intermediate_size, input_size)
+
+    def forward(self, input):
+        return bert_mlp(input, self.lin1, self.lin2)
 
 
 class NormedResidualLayer(Module):
