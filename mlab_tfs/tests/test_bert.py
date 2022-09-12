@@ -52,7 +52,7 @@ def get_pretrained_bert():
 def mapkey(key):
     """Map a key from Hugging Face BERT's parameters to our BERT's parameters."""
     key = re.sub(r'^embedding\.', 'embed.', key)
-    key = re.sub(r'\.position_embedding\.', '.pos_embedding.', key)
+    key = re.sub(r'\.position_embedding\.', '.position_embedding.', key)
     key = re.sub(r'^lm_head\.mlp\.', 'lin.', key)
     key = re.sub(r'^lm_head\.unembedding\.', 'unembed.', key)
     key = re.sub(r'^lm_head\.layer_norm\.', 'layer_norm.', key)
@@ -364,63 +364,53 @@ class TestBertEndToEnd(MLTest):
     """Involves loading pretrained weights."""
 
     def test_bert_logits(self):
-        config = {
-            "vocab_size": 28996,
-            "intermediate_size": 3072,
-            "hidden_size": 768,
-            "num_layers": 12,
-            "num_heads": 12,
-            "max_position_embeddings": 512,
-            "dropout": 0.1,
-            "type_vocab_size": 2,
-        }
+        """Test bert_student.Bert for parity with bert_reference.Bert."""
+        config = BERT_CONFIG_STANDARD
         t.random.manual_seed(0)
         reference = bert_reference.Bert(config)
         reference.eval()
+
         t.random.manual_seed(0)
-        theirs = bert_student.Bert(**config)
-        theirs.eval()
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            "bert-base-cased")
+        student = bert_student.Bert(**config)
+        student.eval()
+
+        tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
         input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
-        self.assert_tensors_close(
-            theirs(input_ids=input_ids),
-            reference(input_ids=input_ids).logits
-        )
+
+        t.random.manual_seed(0)
+        student_logits = student(input_ids=input_ids)
+        t.random.manual_seed(0)
+        reference_logits = reference(input_ids=input_ids).logits
+
+        self.assert_tensors_close(student_logits, reference_logits)
 
     def test_bert_classification(self):
-        config = {
-            "vocab_size": 28996,
-            "intermediate_size": 3072,
-            "hidden_size": 768,
-            "num_layers": 12,
-            "num_heads": 12,
-            "max_position_embeddings": 512,
-            "dropout": 0.1,
-            "type_vocab_size": 2,
-            "num_classes": 2,
-        }
+        """Test bert_student.BertWithClassify for parity with bert_reference.Bert."""
+        config = copy.deepcopy(BERT_CONFIG_STANDARD)
+        config["num_classes"] = 2
+
         t.random.manual_seed(0)
         reference = bert_reference.Bert(config)
         reference.eval()
+
         t.random.manual_seed(0)
-        theirs = bert_student.BertWithClassify(**config)
-        theirs.eval()
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            "bert-base-cased")
+        student = bert_student.BertWithClassify(**config)
+        student.eval()
+
+        tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
         input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
-        logits, classifs = theirs(input_ids=input_ids)
-        self.assert_tensors_close(
-            logits,
-            reference(input_ids=input_ids).logits,
-        )
 
-        self.assert_tensors_close(
-            classifs,
-            reference(input_ids=input_ids).classification,
-        )
+        t.random.manual_seed(0)
+        student_logits, student_classification = student(input_ids=input_ids)
 
-    def test_same_output_with_pretrained_weights(self):
+        t.random.manual_seed(0)
+        reference_output = reference(input_ids=input_ids)
+
+        self.assert_tensors_close(student_logits, reference_output.logits)
+
+        self.assert_tensors_close(student_classification, reference_output.classification)
+
+    def test_same_logits_with_pretrained_weights(self):
         my_bert = bert_student.Bert(
             vocab_size=28996, hidden_size=768, max_position_embeddings=512,
             type_vocab_size=2, dropout=0.1, intermediate_size=3072,

@@ -286,6 +286,10 @@ class BertBlock(nn.Module):
         MultiHeadedSelfAttention
         LayerNorm
         BertMLP
+
+    Hints:
+        If you are failing only test_bert_block_with_dropout, it may be a pointless random number
+            discrepancy that's not your fault. See the comment on that test in ../tests/test_bert.py
     """
 
     def __init__(self, hidden_size: int, intermediate_size: int, num_heads: int, dropout: float):
@@ -311,20 +315,114 @@ class BertBlock(nn.Module):
 
 
 class Bert(nn.Module):
-    def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
-                 dropout, intermediate_size, num_heads, num_layers):
+    """
+    The full BERT transformer encoder model which goes from token IDs to logits.
+
+    Consists of the embedding, blocks, and a token output head. The token output head layer has a
+    linear layer to the hidden size, GELU, layer norm, the an unembedding linear layer to the
+    vocabulary size to produce ouput logits over all tokens.
+
+    Args:
+        hidden_size (int): Token embedding size.
+        vocab_size (int): Vocabulary size.
+        max_position_embeddings (int): Maximum number of tokens per sequence.
+        type_vocab_size (int): Number of different token type/sequence tokens.
+        dropout (float): Dropout probability.
+        intermediate_size (int): Intermediate hidden layer size within the MLP layers.
+        num_heads (int): Number of attention heads.
+        num_layers (int): Number of transformer blocks.
+
+    Attributes:
+        Bert.embed (BertEmbedding): Embedding layer.
+        Bert.blocks (nn.Sequential): Sequence of BertBlocks.
+        Bert.lin (nn.Linear): Output head linear layer.
+        Bert.gelu (GELU): Output head GELU layer.
+        Bert.layer_norm (LayerNorm): Output head layer normalization layer.
+        Bert.unembed (nn.Linear): Output layer unembedding layer.
+
+    Dependencies:
+        BertEmbedding
+        BertBlock
+        GELU
+        LayerNorm
+
+    Hints:
+        Assume all tokens are in the same segment/have the same token type with
+            token_type_ids = t.zeros_like(input_ids, dtype=int)
+    """
+
+    def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
+                 type_vocab_size: int, dropout: float, intermediate_size: int,
+                 num_heads: int, num_layers: int):
         super().__init__()
-        raise NotImplementedError
+        self.embed = BertEmbedding(
+            vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
+        self.blocks = nn.Sequential(
+            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout) for _ in range(num_layers)])
+        self.lin = nn.Linear(hidden_size, hidden_size)
+        self.gelu = GELU()
+        self.layer_norm = LayerNorm(hidden_size)
+        self.unembed = nn.Linear(hidden_size, vocab_size)
 
     def forward(self, input_ids):
-        raise NotImplementedError
+        """Apply embedding, blocks, and token output head."""
+        token_type_ids = t.zeros_like(input_ids, dtype=int)
+        embeddings = self.embed(input_ids, token_type_ids)
+        encodings = self.blocks(embeddings)
+        logits = self.unembed(self.layer_norm(self.gelu(self.lin(encodings))))
+        return logits
 
 
 class BertWithClassify(nn.Module):
+    """
+    The full BERT transformer encoder model which goes from token IDs to logits.
+
+    Just like the above Bert class, but in addition to the token output head, apply a classification
+    head to the CLS encoding output of the transformer blocks. The classification head consists just
+    of dropout and a linear layer from the hidden size to the number of classes.
+
+    Args:
+        Same args as BERT.
+        num_classes: Number of output classes.
+
+    Attributes:
+        Same attributes as BERT.
+        BertWithClassify.classification_dropout (nn.Dropout): Classification dropout layer.
+        BertWithClassify.classification_head (nn.Linear): Classification linear layer.
+
+    Dependencies:
+        BertEmbedding
+        BertBlock
+        GELU
+        LayerNorm
+
+    Hints:
+        The encoded representations output from the transformer blocks are used to get both the
+            token output logits and the classification logits. Don't apply the classification
+            head to the token output logits from the token output head.
+        The classification output uses just the CLS token encoding, which you can get from the
+            output with encodings[:, 0] (the 0th token for all sequences in the batch).
+    """
+
     def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
                  dropout, intermediate_size, num_heads, num_layers, num_classes):
         super().__init__()
-        raise NotImplementedError
+        self.embed = BertEmbedding(
+            vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
+        self.blocks = nn.Sequential(
+            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout) for _ in range(num_layers)])
+        self.lin = nn.Linear(hidden_size, hidden_size)
+        self.gelu = GELU()
+        self.layer_norm = LayerNorm(hidden_size)
+        self.unembed = nn.Linear(hidden_size, vocab_size)
+        self.classification_dropout = nn.Dropout(dropout)
+        self.classification_head = nn.Linear(hidden_size, num_classes)
 
     def forward(self, input_ids):
-        raise NotImplementedError
+        """Returns a tuple of logits, classifications."""
+        token_type_ids = t.zeros_like(input_ids, dtype=int)
+        embeddings = self.embed(input_ids, token_type_ids)
+        encodings = self.blocks(embeddings)
+        logits = self.unembed(self.layer_norm(self.gelu(self.lin(encodings))))
+        classifications = self.classification_head(self.classification_dropout(encodings[:, 0]))
+        return logits, classifications

@@ -93,7 +93,8 @@ Resources:
 - [ ] Replace `# Tensor[...` with `TensorType` stuff
 - [ ] Rewrite/fix the 2 commented out tests
 - [ ] Integrate tests from the other archived files
-- [ ] Investigate [mocking](https://stackoverflow.com/questions/16134281/python-mocking-a-function-from-an-imported-module) to check that the student didn't use methods from torch.nn instead of implementing their own
+- [X] Investigate [mocking](https://stackoverflow.com/questions/16134281/python-mocking-a-function-from-an-imported-module) to check that the student didn't use methods from torch.nn instead of implementing their own
+- [ ] Add type hints to bert_student.py
 
 ### GPT
 - [ ] Write BERT readme
