@@ -87,7 +87,7 @@ Resources:
     - [ ] Start implementing with link to each sub-readme
 - [ ] Include config or hyperparams or code to load weights
 - [ ] Change TODO into a changelist to describe differences from upstream
-- [ ] Do BERT
+- [X] Do BERT
 - [ ] Try removing __init__.py and other files if not used
 - [ ] Remove commented requirements now that requirements are verified
 - [ ] Replace `# Tensor[...` with `TensorType` stuff
