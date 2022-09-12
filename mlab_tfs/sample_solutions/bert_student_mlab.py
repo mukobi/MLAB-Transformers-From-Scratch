@@ -135,14 +135,14 @@ class BertEmbedding(nn.Module):
                  dropout: float):
         super().__init__()
         self.token_embedding = nn.Embedding(vocab_size, hidden_size)
-        self.pos_embedding = nn.Embedding(max_position_embeddings, hidden_size)
+        self.position_embedding = nn.Embedding(max_position_embeddings, hidden_size)
         self.token_type_embedding = nn.Embedding(type_vocab_size, hidden_size)
         self.layer_norm = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_ids, token_type_ids):
         return bert_embedding(
-            input_ids, token_type_ids, self.pos_embedding, self.token_embedding,
+            input_ids, token_type_ids, self.position_embedding, self.token_embedding,
             self.token_type_embedding, self.layer_norm, self.dropout)
 
 
@@ -181,8 +181,8 @@ class BertWithClassify(nn.Module):
         self.lin = nn.Linear(hidden_size, hidden_size)
         self.layer_norm = nn.LayerNorm(hidden_size)
         self.unembed = nn.Linear(hidden_size, vocab_size)
-        self.classification_head = nn.Linear(hidden_size, num_classes)
         self.classification_dropout = nn.Dropout(dropout)
+        self.classification_head = nn.Linear(hidden_size, num_classes)
 
     def forward(self, input_ids):
         token_type_ids = t.zeros_like(input_ids, dtype=int)

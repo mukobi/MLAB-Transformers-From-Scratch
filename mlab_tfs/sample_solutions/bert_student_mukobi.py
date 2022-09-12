@@ -39,14 +39,19 @@ class LayerNorm(nn.Module):
     def __init__(self, normalized_shape: int):
         super().__init__()
         self.normalized_shape = normalized_shape
-        self.weight = None
-        self.bias = None
-        raise NotImplementedError
+        self.weight = nn.Parameter(t.ones(normalized_shape))
+        self.bias = nn.Parameter(t.zeros(normalized_shape))
 
     def forward(self, input: TensorType[...]):
         """Apply Layer Normalization over a mini-batch of inputs."""
+        num_normed_dims = self.weight.dim()
+        normalizing_dims = tuple(range(-num_normed_dims, 0))  # (-(n-1), ..., -2, -1)
+        var, mean = t.var_mean(input, normalizing_dims, unbiased=False)
+        # Stack up to the dimension of input
+        var = rearrange(var, 'x ... -> x ...' + ' ()' * num_normed_dims)
+        mean = rearrange(mean, 'x ... -> x ...' + ' ()' * num_normed_dims)
         eps = 1e-05
-        raise NotImplementedError
+        return (input - mean) / t.sqrt(var + eps) * self.weight + self.bias
 
 
 class Embedding(nn.Module):
@@ -71,12 +76,11 @@ class Embedding(nn.Module):
 
     def __init__(self, vocab_size, embed_size):
         super().__init__()
-        self.weight = None
-        raise NotImplementedError
+        self.weight = nn.Parameter(t.randn((vocab_size, embed_size)))
 
     def forward(self, input):
         """Look up the input list of indices in the embedding matrix."""
-        raise NotImplementedError
+        return self.weight[input]
 
 
 class BertEmbedding(nn.Module):
@@ -117,16 +121,23 @@ class BertEmbedding(nn.Module):
     def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
                  type_vocab_size: int, dropout: float):
         super().__init__()
-        self.token_embedding = None
-        self.position_embedding = None
-        self.token_type_embedding = None
-        self.layer_norm = None
-        self.dropout = None
-        raise NotImplementedError
+        self.token_embedding = Embedding(vocab_size, hidden_size)
+        self.position_embedding = Embedding(max_position_embeddings, hidden_size)
+        self.token_type_embedding = Embedding(type_vocab_size, hidden_size)
+        self.layer_norm = LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_ids, token_type_ids):
         """Add embeddings and apply layer norm and dropout."""
-        raise NotImplementedError
+        num_batches, num_tokens = input_ids.shape
+        token_embeddings = self.token_embedding(input_ids)
+        token_type_embeddings = self.token_type_embedding(token_type_ids)
+        position_embeddings = self.position_embedding(t.arange(num_tokens))
+        # Expand position embeddings for each batch.
+        position_embeddings = repeat(position_embeddings, 't d -> b t d', b=num_batches)
+
+        embeddings = position_embeddings + token_embeddings + token_type_embeddings
+        return self.dropout(self.layer_norm(embeddings))
 
 
 class MultiHeadedSelfAttention(nn.Module):
@@ -163,17 +174,41 @@ class MultiHeadedSelfAttention(nn.Module):
     def __init__(self, num_heads: int, hidden_size: int):
         super().__init__()
         self.num_heads = num_heads
-        self.project_query = None
-        self.project_key = None
-        self.project_value = None
-        self.project_output = None
-        raise NotImplementedError
+        self.project_query = nn.Linear(hidden_size, hidden_size)
+        self.project_key = nn.Linear(hidden_size, hidden_size)
+        self.project_value = nn.Linear(hidden_size, hidden_size)
+        self.project_output = nn.Linear(hidden_size, hidden_size)
 
     def forward(self, input: TensorType['batch', 'seq_length', 'hidden_size'],
                 attn_mask: typing.Optional[TensorType['batch', 'seq_length']] = None
                 ) -> TensorType['batch', 'seq_length', 'hidden_size']:
         """Apply multi-headed scaled dot product self attention with an optional attention mask."""
-        raise NotImplementedError
+        # Project input into Q, K, and V vectors
+        queries = self.project_query(input)
+        keys = self.project_key(input)
+        values = self.project_value(input)
+
+        # Split each along the hidden dimension
+        split_pattern = 'batch length (heads d_k) -> batch heads length d_k'
+        queries = rearrange(queries, split_pattern, heads=self.num_heads)
+        keys = rearrange(keys, split_pattern, heads=self.num_heads)
+        values = rearrange(values, split_pattern, heads=self.num_heads)
+
+        # Compute the attention weights.
+        attn = t.einsum('bhqd, bhkd -> bhqk', [queries, keys]) / np.sqrt(queries.shape[-1])
+        if attn_mask is not None:
+            attn.masked_fill_(attn_mask, -1e9)
+        attn = t.softmax(attn, dim=-1)
+
+        # Weight and sum the values
+        values = t.einsum('bhkd, bhqk -> bhqd', [values, attn])
+
+        # Concatenate
+        values = rearrange(values, 'batch heads length d_k -> batch length (heads d_k)')
+
+        # Project into the output space
+        output = self.project_output(values)
+        return output
 
 
 class GELU(nn.Module):
@@ -193,7 +228,7 @@ class GELU(nn.Module):
 
     def forward(self, input):
         """Apply the GELU function."""
-        raise NotImplementedError
+        return input * 0.5 * (1.0 + t.erf(input / np.sqrt(2)))
 
 
 class BertMLP(nn.Module):
@@ -218,15 +253,14 @@ class BertMLP(nn.Module):
 
     def __init__(self, hidden_size: int, intermediate_size: int):
         super().__init__()
-        self.lin1 = None
-        self.gelu = None
-        self.lin2 = None
-        raise NotImplementedError
+        self.lin1 = nn.Linear(hidden_size, intermediate_size)
+        self.gelu = GELU()
+        self.lin2 = nn.Linear(intermediate_size, hidden_size)
 
     def forward(self, input: TensorType['batch_size', 'seq_length', 'hidden_size']
                 ) -> TensorType['batch_size', 'seq_length', 'hidden_size']:
         """Apply linear projection, GELU, and another linear projection."""
-        raise NotImplementedError
+        return self.lin2(self.gelu(self.lin1(input)))
 
 
 class BertBlock(nn.Module):
@@ -265,16 +299,24 @@ class BertBlock(nn.Module):
 
     def __init__(self, hidden_size: int, intermediate_size: int, num_heads: int, dropout: float):
         super().__init__()
-        self.attention = None
-        self.layernorm1 = None
-        self.mlp = None
-        self.layernorm2 = None
-        self.dropout = None
-        raise NotImplementedError
+        self.attention = MultiHeadedSelfAttention(num_heads, hidden_size)
+        self.layernorm1 = LayerNorm(hidden_size)
+        self.mlp = BertMLP(hidden_size, intermediate_size)
+        self.layernorm2 = LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, input, attn_mask=None):
         """Apply each of the layers in the block."""
-        raise NotImplementedError
+        attention = self.attention(input, attn_mask)
+        dropout1 = self.dropout(attention)
+        residual1 = dropout1 + input
+        layernorm1 = self.layernorm1(residual1)
+
+        mlp = self.mlp(layernorm1)
+        dropout2 = self.dropout(mlp)
+        residual2 = dropout2 + layernorm1
+        layernorm2 = self.layernorm2(residual2)
+        return layernorm2
 
 
 class Bert(nn.Module):
@@ -318,18 +360,23 @@ class Bert(nn.Module):
                  type_vocab_size: int, dropout: float, intermediate_size: int,
                  num_heads: int, num_layers: int):
         super().__init__()
-        self.embed = None
-        self.blocks = None
-        self.lin = None
-        self.gelu = None
-        self.layer_norm = None
-        self.unembed = None
-        raise NotImplementedError
+        self.embed = BertEmbedding(
+            vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
+        self.blocks = nn.Sequential(
+            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout)
+              for _ in range(num_layers)])
+        self.lin = nn.Linear(hidden_size, hidden_size)
+        self.gelu = GELU()
+        self.layer_norm = LayerNorm(hidden_size)
+        self.unembed = nn.Linear(hidden_size, vocab_size)
 
     def forward(self, input_ids):
         """Apply embedding, blocks, and token output head."""
         token_type_ids = t.zeros_like(input_ids, dtype=int)
-        raise NotImplementedError
+        embeddings = self.embed(input_ids, token_type_ids)
+        encodings = self.blocks(embeddings)
+        logits = self.unembed(self.layer_norm(self.gelu(self.lin(encodings))))
+        return logits
 
 
 class BertWithClassify(nn.Module):
@@ -366,17 +413,23 @@ class BertWithClassify(nn.Module):
     def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
                  dropout, intermediate_size, num_heads, num_layers, num_classes):
         super().__init__()
-        self.embed = None
-        self.blocks = None
-        self.lin = None
-        self.gelu = None
-        self.layer_norm = None
-        self.unembed = None
-        self.classification_dropout = None
-        self.classification_head = None
-        raise NotImplementedError
+        self.embed = BertEmbedding(
+            vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
+        self.blocks = nn.Sequential(
+            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout)
+              for _ in range(num_layers)])
+        self.lin = nn.Linear(hidden_size, hidden_size)
+        self.gelu = GELU()
+        self.layer_norm = LayerNorm(hidden_size)
+        self.unembed = nn.Linear(hidden_size, vocab_size)
+        self.classification_dropout = nn.Dropout(dropout)
+        self.classification_head = nn.Linear(hidden_size, num_classes)
 
     def forward(self, input_ids):
         """Returns a tuple of logits, classifications."""
         token_type_ids = t.zeros_like(input_ids, dtype=int)
-        raise NotImplementedError
+        embeddings = self.embed(input_ids, token_type_ids)
+        encodings = self.blocks(embeddings)
+        logits = self.unembed(self.layer_norm(self.gelu(self.lin(encodings))))
+        classifications = self.classification_head(self.classification_dropout(encodings[:, 0]))
+        return logits, classifications

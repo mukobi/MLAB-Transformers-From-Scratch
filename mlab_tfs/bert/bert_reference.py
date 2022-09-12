@@ -51,8 +51,18 @@ class BertEmbedding(Module):
         return self.token_embedding.unembed(embeddings)
 
 
-def bert_mlp(token_activations, linear_1, linear_2, dropout):
-    return dropout(linear_2(gelu(linear_1(token_activations))))
+def bert_mlp(token_activations, linear_1, linear_2):
+    return linear_2(gelu(linear_1(token_activations)))
+
+
+class BertMLP(Module):
+    def __init__(self, input_size: int, intermediate_size: int):
+        super().__init__()
+        self.lin1 = t.nn.Linear(input_size, intermediate_size)
+        self.lin2 = t.nn.Linear(intermediate_size, input_size)
+
+    def forward(self, input):
+        return bert_mlp(input, self.lin1, self.lin2)
 
 
 class NormedResidualLayer(Module):
@@ -95,7 +105,8 @@ def multi_head_self_attention(
     # if attention_masks is not None:
     #     attention_raw = attention_raw * attention_masks
     attention_patterns = softmax(attention_pattern, dim=-2)
-    attention_patterns = dropout(attention_patterns)
+    # EDIT(mukobi): removing dropout here for easier reproducibility
+    # attention_patterns = dropout(attention_patterns)
 
     value = project_value(token_activations)
     value = rearrange(value, "b s (h c) -> b h s c", h=num_heads)
@@ -153,21 +164,20 @@ class BertBlock(Module):
 
         self.config = config
         hidden_size = config["hidden_size"]
-        self.layer_norm = LayerNorm((hidden_size,))
-        self.dropout = Dropout()
         self.attention = SelfAttentionLayer(config)
+        self.layer_norm = LayerNorm((hidden_size,))
+        self.dropout = Dropout(config["dropout"])
 
         self.residual = NormedResidualLayer(
             config["hidden_size"], config["intermediate_size"], config["dropout"]
         )
 
     def forward(self, token_activations, attention_masks=None):
-        attention_output = self.layer_norm(
-            token_activations
-            + self.dropout(self.attention(token_activations, attention_masks))
-        )
-
-        return self.residual(attention_output)
+        attention = self.attention(token_activations, attention_masks)
+        dropout = self.dropout(attention)
+        residual = token_activations + dropout
+        normalized = self.layer_norm(residual)
+        return self.residual(normalized)
 
 
 class BertLMHead(Module):

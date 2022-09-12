@@ -71,9 +71,9 @@ Resources:
 - [X] Remove old git stuff (prune?) so it's a smaller download
 - [X] Set up Pylint with a config
 - [X] Refactor testing code into unittest
-- [ ] Rename files to bert_reference, bert_student
-- [ ] Create starter file for you with empty stubs
-- [ ] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
+- [X] Rename files to bert_reference, bert_student
+- [X] Create starter file for you with empty stubs
+- [X] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
 - [ ] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
     - [ ] Say it should be about 200 (or 150-300) lines of code
 - [ ] Update this main readme
@@ -87,12 +87,14 @@ Resources:
     - [ ] Start implementing with link to each sub-readme
 - [ ] Include config or hyperparams or code to load weights
 - [ ] Change TODO into a changelist to describe differences from upstream
-- [ ] Do BERT
+- [X] Do BERT
 - [ ] Try removing __init__.py and other files if not used
 - [ ] Remove commented requirements now that requirements are verified
 - [ ] Replace `# Tensor[...` with `TensorType` stuff
 - [ ] Rewrite/fix the 2 commented out tests
 - [ ] Integrate tests from the other archived files
+- [X] Investigate [mocking](https://stackoverflow.com/questions/16134281/python-mocking-a-function-from-an-imported-module) to check that the student didn't use methods from torch.nn instead of implementing their own
+- [ ] Add type hints to bert_student.py
 
 ### GPT
 - [ ] Write BERT readme
