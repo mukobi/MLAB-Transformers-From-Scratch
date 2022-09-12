@@ -1,10 +1,14 @@
-import math
+"""
+Student implementation of BERT.
+
+Complete this file from top to bottom and pass the tests in ../tests/test_bert.py.
+"""
+
 import typing
 
 import numpy as np
 import torch as t
 from torch import nn
-from torch.nn import functional as F
 from einops import rearrange, repeat
 from torchtyping import TensorType
 
@@ -56,7 +60,8 @@ class Embedding(nn.Module):
     See https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html
 
     This module is often used to store word embeddings and retrieve them using indices. The input
-    to the module is a list of indices, and the summed_embeddings is the corresponding word embeddings.
+    to the module is a list of indices, and the summed_embeddings is the corresponding word
+    embeddings.
 
     Args:
         Embedding.weight (Tensor): The learnable weights of the module of shape
@@ -109,8 +114,8 @@ class BertEmbedding(nn.Module):
     Hints:
         Initialization order matters for our seeded random tests. Initialize token_embedding, then
             position_embedding, then token_type_embedding.
-        Use torch.arange to create an ascending integer list to index into your position embeddings.
-            You'll have to take care to repeat/expand your tensors to the appropriate sizes so they sum.
+        Use torch.arange to create an ascending integer list to index your position embeddings.
+            You'll have to take care to repeat/expand your tensors to the appropriate sizes.
     """
 
     def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
@@ -358,7 +363,8 @@ class Bert(nn.Module):
         self.embed = BertEmbedding(
             vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
         self.blocks = nn.Sequential(
-            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout) for _ in range(num_layers)])
+            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout)
+              for _ in range(num_layers)])
         self.lin = nn.Linear(hidden_size, hidden_size)
         self.gelu = GELU()
         self.layer_norm = LayerNorm(hidden_size)
@@ -410,7 +416,8 @@ class BertWithClassify(nn.Module):
         self.embed = BertEmbedding(
             vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
         self.blocks = nn.Sequential(
-            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout) for _ in range(num_layers)])
+            *[BertBlock(hidden_size, intermediate_size, num_heads, dropout)
+              for _ in range(num_layers)])
         self.lin = nn.Linear(hidden_size, hidden_size)
         self.gelu = GELU()
         self.layer_norm = LayerNorm(hidden_size)
