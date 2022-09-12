@@ -105,7 +105,8 @@ def multi_head_self_attention(
     # if attention_masks is not None:
     #     attention_raw = attention_raw * attention_masks
     attention_patterns = softmax(attention_pattern, dim=-2)
-    attention_patterns = dropout(attention_patterns)
+    # EDIT(mukobi): removing dropout here for easier reproducibility
+    # attention_patterns = dropout(attention_patterns)
 
     value = project_value(token_activations)
     value = rearrange(value, "b s (h c) -> b h s c", h=num_heads)
@@ -163,21 +164,20 @@ class BertBlock(Module):
 
         self.config = config
         hidden_size = config["hidden_size"]
-        self.layer_norm = LayerNorm((hidden_size,))
-        self.dropout = Dropout()
         self.attention = SelfAttentionLayer(config)
+        self.layer_norm = LayerNorm((hidden_size,))
+        self.dropout = Dropout(config["dropout"])
 
         self.residual = NormedResidualLayer(
             config["hidden_size"], config["intermediate_size"], config["dropout"]
         )
 
     def forward(self, token_activations, attention_masks=None):
-        attention_output = self.layer_norm(
-            token_activations
-            + self.dropout(self.attention(token_activations, attention_masks))
-        )
-
-        return self.residual(attention_output)
+        attention = self.attention(token_activations, attention_masks)
+        dropout = self.dropout(attention)
+        residual = token_activations + dropout
+        normalized = self.layer_norm(residual)
+        return self.residual(normalized)
 
 
 class BertLMHead(Module):

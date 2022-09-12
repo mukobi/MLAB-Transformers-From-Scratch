@@ -299,12 +299,15 @@ class BertBlock(nn.Module):
     def forward(self, input, attn_mask=None):
         """Apply each of the layers in the block."""
         attention = self.attention(input, attn_mask)
-        input = self.dropout(attention) + input
-        input = self.layernorm1(input)
-        mlp = self.mlp(input)
-        input = self.dropout(mlp) + input
-        input = self.layernorm2(input)
-        return input
+        dropout1 = self.dropout(attention)
+        residual1 = dropout1 + input
+        layernorm1 = self.layernorm1(residual1)
+
+        mlp = self.mlp(layernorm1)
+        dropout2 = self.dropout(mlp)
+        residual2 = dropout2 + layernorm1
+        layernorm2 = self.layernorm2(residual2)
+        return layernorm2
 
 
 class Bert(nn.Module):

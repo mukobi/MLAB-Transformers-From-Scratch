@@ -306,7 +306,7 @@ class TestBertBlock(MLTest):
 
     def test_bert_block_no_dropout(self):
         """Test bert_student.BertBlock for parity with bert_reference.BertBlock in eval mode."""
-        config = BERT_CONFIG_STANDARD
+        config = BERT_CONFIG_NO_DROPOUT
         t.random.manual_seed(0)
         reference = bert_reference.BertBlock(config)
         reference.eval()
@@ -324,12 +324,13 @@ class TestBertBlock(MLTest):
 
         self.assert_tensors_close(student(input_activations), reference(input_activations))
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_bert_block_with_dropout(self):
         """
         Test bert_student.BertBlock for parity with bert_reference.BertBlock in train mode.
 
-        Note: Dropout makes this weird, so marking as an expectedFailure. Futher refinement needed.
+        Note: Dropout makes this weird, and it's possible you fail this test for silly reasons that
+        aren't your fault, so feel free to mark it as an expectedFailure. Futher refinement needed.
         """
         config = BERT_CONFIG_STANDARD
 
