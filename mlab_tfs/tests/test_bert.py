@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 import re
+import copy
 
 import torch as t
 from torch import nn
@@ -9,6 +10,20 @@ from torchtyping import TensorType
 
 from mlab_tfs.bert import bert_student, bert_reference
 from mlab_tfs.utils.mlab_utils import itpeek
+
+# Config
+BERT_CONFIG_STANDARD = {
+    "vocab_size": 28996,
+    "intermediate_size": 3072,
+    "hidden_size": 768,
+    "num_layers": 12,
+    "num_heads": 12,
+    "max_position_embeddings": 512,
+    "dropout": 0.1,
+    "type_vocab_size": 2,
+}
+BERT_CONFIG_NO_DROPOUT = copy.deepcopy(BERT_CONFIG_STANDARD)
+BERT_CONFIG_NO_DROPOUT["dropout"] = 0.0
 
 # Base test class
 # TODO move somewhere better
@@ -137,13 +152,7 @@ class TestBertEmbedding(MLTest):
 
     def test_bert_embedding(self):
         """Test bert_student.BertEmbedding for parity with bert_reference.BertEmbedding."""
-        config = {
-            "vocab_size": 28996,
-            "hidden_size": 768,
-            "max_position_embeddings": 512,
-            "type_vocab_size": 2,
-            "dropout": 0.1,
-        }
+        config = BERT_CONFIG_STANDARD
         t.random.manual_seed(0)
         input_ids = t.randint(0, 2900, (2, 3))
         tt_ids = t.randint(0, 2, (2, 3))
@@ -151,7 +160,9 @@ class TestBertEmbedding(MLTest):
         reference = bert_reference.BertEmbedding(config)
         reference.eval()
         t.random.manual_seed(0)
-        yours = bert_student.BertEmbedding(**config)
+        yours = bert_student.BertEmbedding(
+            config['vocab_size'], config['hidden_size'], config['max_position_embeddings'],
+            config['type_vocab_size'], config['dropout'])
         yours.eval()
         self.assert_tensors_close(
             yours(input_ids=input_ids, token_type_ids=tt_ids),
@@ -176,16 +187,8 @@ class TestBertAttention(MLTest):
         Test bert_student.MultiHeadedSelfAttention for parity with
         bert_reference.SelfAttentionLayer (num_heads = 1).
         """
-        config = {
-            "vocab_size": 28996,
-            "intermediate_size": 3072,
-            "hidden_size": 768,
-            "num_layers": 12,
-            "num_heads": 1,
-            "max_position_embeddings": 512,
-            "dropout": 0.0,  # bert_student.MultiHeadedSelfAttention has no dropout
-            "type_vocab_size": 2,
-        }
+        config = BERT_CONFIG_NO_DROPOUT
+
         t.random.manual_seed(0)
         reference = bert_reference.SelfAttentionLayer(config)
         reference.eval()
@@ -202,16 +205,8 @@ class TestBertAttention(MLTest):
         Test bert_student.MultiHeadedSelfAttention for parity with
         bert_reference.SelfAttentionLayer (num_heads = 12).
         """
-        config = {
-            "vocab_size": 28996,
-            "intermediate_size": 3072,
-            "hidden_size": 768,
-            "num_layers": 12,
-            "num_heads": 12,
-            "max_position_embeddings": 512,
-            "dropout": 0.0,  # bert_student.MultiHeadedSelfAttention has no dropout
-            "type_vocab_size": 2,
-        }
+        config = BERT_CONFIG_NO_DROPOUT
+
         t.random.manual_seed(0)
         reference = bert_reference.SelfAttentionLayer(config)
         reference.eval()
@@ -276,33 +271,92 @@ class TestBertMLP(MLTest):
 
 
 class TestBertBlock(MLTest):
-    def test_bert_block(self):
-        config = {
-            "vocab_size": 28996,
-            "intermediate_size": 3072,
-            "hidden_size": 768,
-            "num_layers": 12,
-            "num_heads": 12,
-            "max_position_embeddings": 512,
-            "dropout": 0.1,
-            "type_vocab_size": 2,
-        }
-        t.random.manual_seed(0)
-        reference = bert_reference.BertBlock(config)
-        reference.eval()
-        t.random.manual_seed(0)
-        theirs = bert_student.BertBlock(
+    """Test BERT single block functionality."""
+
+    @patch('torch.nn.functional.layer_norm')
+    @ patch('torch.nn.MultiheadAttention.forward')
+    def test_no_cheating(self, patched_attention, patched_layer_norm):
+        """Test that the student doesn't call the PyTorch version."""
+        config = BERT_CONFIG_STANDARD
+        bert_block = bert_student.BertBlock(
             intermediate_size=config["intermediate_size"],
             hidden_size=config["hidden_size"],
             num_heads=config["num_heads"],
             dropout=config["dropout"],
         )
-        theirs.eval()
         input_activations = t.rand((2, 3, 768))
-        self.assert_tensors_close(
-            theirs(input_activations),
-            reference(input_activations)
+        bert_block(input_activations)
+        patched_attention.assert_not_called()
+        patched_layer_norm.assert_not_called()
+
+    def test_attribute_types(self):
+        """Test the types of the module's attributes."""
+        config = BERT_CONFIG_STANDARD
+        bert_block = bert_student.BertBlock(
+            intermediate_size=config["intermediate_size"],
+            hidden_size=config["hidden_size"],
+            num_heads=config["num_heads"],
+            dropout=config["dropout"],
         )
+        self.assertIsInstance(bert_block.attention, bert_student.MultiHeadedSelfAttention)
+        self.assertIsInstance(bert_block.layernorm1, bert_student.LayerNorm)
+        self.assertIsInstance(bert_block.mlp, bert_student.BertMLP)
+        self.assertIsInstance(bert_block.layernorm2, bert_student.LayerNorm)
+        self.assertIsInstance(bert_block.dropout, t.nn.Dropout)
+
+    def test_bert_block_no_dropout(self):
+        """Test bert_student.BertBlock for parity with bert_reference.BertBlock in eval mode."""
+        config = BERT_CONFIG_STANDARD
+        t.random.manual_seed(0)
+        reference = bert_reference.BertBlock(config)
+        reference.eval()
+        t.random.manual_seed(0)
+        student = bert_student.BertBlock(
+            intermediate_size=config["intermediate_size"],
+            hidden_size=config["hidden_size"],
+            num_heads=config["num_heads"],
+            dropout=config["dropout"],
+        )
+        student.eval()
+
+        t.random.manual_seed(0)
+        input_activations = t.rand((2, 3, 768))
+
+        self.assert_tensors_close(student(input_activations), reference(input_activations))
+
+    @unittest.expectedFailure
+    def test_bert_block_with_dropout(self):
+        """
+        Test bert_student.BertBlock for parity with bert_reference.BertBlock in train mode.
+
+        Note: Dropout makes this weird, so marking as an expectedFailure. Futher refinement needed.
+        """
+        config = BERT_CONFIG_STANDARD
+
+        t.random.manual_seed(0)
+        input_activations = t.rand((2, 3, 768))
+
+        t.random.manual_seed(0)
+        reference = bert_reference.BertBlock(config)
+        reference.train()
+        t.random.manual_seed(0)
+        reference_output = reference(input_activations)
+
+        t.random.manual_seed(0)
+        input_activations = t.rand((2, 3, 768))
+
+        t.random.manual_seed(0)
+        student = bert_student.BertBlock(
+            intermediate_size=config["intermediate_size"],
+            hidden_size=config["hidden_size"],
+            num_heads=config["num_heads"],
+            dropout=config["dropout"],
+        )
+        student.train()
+        t.random.manual_seed(0)
+        student_output = student(input_activations)
+
+        self.assert_tensors_close(student_output, reference_output)
 
 
 class TestBertEndToEnd(MLTest):

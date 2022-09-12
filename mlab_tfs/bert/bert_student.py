@@ -21,10 +21,9 @@ class LayerNorm(nn.Module):
 
     Attributes:
         LayerNorm.weight: The learnable weights gamma of the module of shape normalized_shape.
-        The values are initialized to 1.
-
+            The values are initialized to 1.
         LayerNorm.bias: The learnable bias beta of the module of shape normalized_shape.
-        The values are initialized to 0.
+            The values are initialized to 0.
 
     Dependencies:
         None.
@@ -95,29 +94,23 @@ class BertEmbedding(nn.Module):
 
     Args:
         vocab_size, hidden_size, max_position_embeddings, type_vocab_size (int): Embeddings dims.
-
         dropout: Dropout rate.
 
     Attributes:
         BertEmbedding.token_embedding (Embedding): Token embeddings.
-
         BertEmbedding.position_embedding (Embedding): Position embeddings.
-
         BertEmbedding.token_type_embedding (Embedding): Token type/segment embeddings.
-
         BertEmbedding.layer_norm (LayerNorm): Layer normalization.
-
-        BertEmbedding.dropout (nn.Dropout): Dropout layer.
+        BertEmbedding.dropout (nn.Dropout): Dropout module.
 
     Dependencies:
         Embedding, LayerNorm
 
     Hints:
         Initialization order matters for our seeded random tests. Initialize token_embedding, then
-        position_embedding, then token_type_embedding.
-
+            position_embedding, then token_type_embedding.
         Use torch.arange to create an ascending integer list to index into your position embeddings.
-        You'll have to take care to repeat/expand your tensors to the appropriate sizes so they sum.
+            You'll have to take care to repeat/expand your tensors to the appropriate sizes so they sum.
     """
 
     def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
@@ -159,19 +152,18 @@ class MultiHeadedSelfAttention(nn.Module):
         MultiHeadedSelfAttention.project_key (nn.Linear): Projects the input into key space.
         MultiHeadedSelfAttention.project_value (nn.Linear): Projects the input into value space.
         MultiHeadedSelfAttention.project_output (nn.Linear): Projects the concatenated and weighted
-        values back into hidden representation space.
+            values back into hidden representation space.
 
     Dependencies:
         None.
 
     Hints:
         Think about how to do single-headed attention with just 1 sequence, then with a batch of
-        sequences, then with multiple heads across a batch of sequences.
-
+            sequences, then with multiple heads across a batch of sequences.
         An efficient way of handling multiple heads is to first project the input into Q, K, and V
-        vectors of size hidden_size then to split each of those along the hidden_size dimension
-        so there are num_heads number of smaller vectors. At the end, concatenate them together
-        back into a vector of size hidden_size. einops and einsum are particularly useful here.
+            vectors of size hidden_size then to split each of those along the hidden_size dimension
+            so there are num_heads number of smaller vectors. At the end, concatenate them together
+            back into a vector of size hidden_size. einops and einsum are particularly useful here.
     """
 
     def __init__(self, num_heads: int, hidden_size: int):
@@ -226,7 +218,7 @@ class GELU(nn.Module):
 
     Hint:
         The CDF of a normal distribution with a mean of 0 and variance of 1 is
-        0.5 * (1.0 + erf(value / sqrt(2))) where erf is the error function (torch.erf).
+            0.5 * (1.0 + erf(value / sqrt(2))) where erf is the error function (torch.erf).
     """
 
     def forward(self, input):
@@ -244,12 +236,10 @@ class BertMLP(nn.Module):
 
     Args:
         hidden_size (int): Token embedding size.
-
         intermediate_size (int): Intermediate hidden layer size.
 
     Attributes:
         BertMLP.lin1 (nn.Linear): First linear layer.
-
         BertMLP.lin2 (nn.Linear): Second linear layer.
 
     Dependencies:
@@ -269,12 +259,52 @@ class BertMLP(nn.Module):
 
 
 class BertBlock(nn.Module):
-    def __init__(self, hidden_size, intermediate_size, num_heads, dropout: float):
-        super().__init__()
-        raise NotImplementedError
+    """
+    One of the BERT transformer encoder blocks/layers.
+    See §3.1/Figure 1 in Attention Is All You Need https://arxiv.org/pdf/1706.03762.pdf#page=3
 
-    def forward(self, input):
-        raise NotImplementedError
+    Mainly consists of self attention, adding a residual connection, layer norm, feed-forward/MLP,
+    adding another residual connection, and layer normalization.
+
+    We apply dropout to the output of each sub-layer, before it is added to the sub-layer input
+    and normalized (i.e. before each residual connection right before layer normalization).
+
+    Args:
+        hidden_size (int): Token embedding size.
+        intermediate_size (int): Intermediate hidden layer size within the MLP layer.
+        num_heads (int): Number of attention heads.
+        dropout (float): Dropout probability.
+
+    Attributes:
+        BertBlock.attention (MultiHeadedSelfAttention): Multi-headed self attention layer.
+        BertBlock.layernorm1 (LayerNorm): First layer normalization layer.
+        BertBlock.mlp (BertMLP): Fully connected MLP layer.
+        BertBlock.layernorm2 (LayerNorm): Second layer normalization layer.
+        BertBlock.dropout (nn.Dropout): Dropout module.
+
+    Dependencies:
+        MultiHeadedSelfAttention
+        LayerNorm
+        BertMLP
+    """
+
+    def __init__(self, hidden_size: int, intermediate_size: int, num_heads: int, dropout: float):
+        super().__init__()
+        self.attention = MultiHeadedSelfAttention(num_heads, hidden_size)
+        self.layernorm1 = LayerNorm(hidden_size)
+        self.mlp = BertMLP(hidden_size, intermediate_size)
+        self.layernorm2 = LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, input, attn_mask=None):
+        """Apply each of the layers in the block."""
+        attention = self.attention(input, attn_mask)
+        input = self.dropout(attention) + input
+        input = self.layernorm1(input)
+        mlp = self.mlp(input)
+        input = self.dropout(mlp) + input
+        input = self.layernorm2(input)
+        return input
 
 
 class Bert(nn.Module):
