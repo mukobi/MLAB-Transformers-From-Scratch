@@ -132,7 +132,7 @@ Note: Only the BERT folder is fully tested and documented, but you can also try 
     - [X] Testing
     - [X] Start implementing with link to each sub-readme
 - [X] Set up Pylint with a config
-- [ ] Remove commented requirements now that requirements are verified
+- [X] Remove commented requirements now that requirements are verified
 
 ### BERT
 - [X] Delete duplicated BERT solution file
