@@ -29,17 +29,17 @@ A documented and unit-tested repo to help you learn how to build transformer neu
 
 ### Prerequisites
 
-- Python 3.7+
-- Read about and use [the transformer architecture](https://docs.google.com/document/d/1b83_-eo9NEaKDKc9R3P5h5xkLImqMw8ADLmi__rkLo4/edit#heading=h.nlbz88ykqv3r)
-- Learn how to use [Numpy](https://www.freecodecamp.org/learn/data-analysis-with-python/) and [PyTorch](https://pytorch.org/tutorials/)
-- Recommended: Learn how to use [einops](http://einops.rocks/) and [einsum](https://rockt.github.io/2018/04/30/einsum)
+- Python 3.7+.
+- Read about and use [the transformer architecture](https://docs.google.com/document/d/1b83_-eo9NEaKDKc9R3P5h5xkLImqMw8ADLmi__rkLo4/edit#heading=h.nlbz88ykqv3r).
+- Learn how to use [Numpy](https://www.freecodecamp.org/learn/data-analysis-with-python/) and [PyTorch](https://pytorch.org/tutorials/).
+- Recommended: Learn how to use [einops](http://einops.rocks/) and [einsum](https://rockt.github.io/2018/04/30/einsum).
 
 ### Installation
 
-2. Create a virtual environment with venv or Anaconda and activate it if you like to work with virtual environments.
-3. [Install PyTorch](https://pytorch.org/get-started/locally/) with the appropriate configuration for your environment.
-4. Run `pip install -r requirements.txt` to install the other requirements for this repository.
-5. Run `pip install -e .` to install the mlab_tfs package in an editable state. 
+1. Create a virtual environment with venv or Anaconda and activate it if you like to work with virtual environments.
+2. [Install PyTorch](https://pytorch.org/get-started/locally/) with the appropriate configuration for your environment.
+3. Run `pip install -r requirements.txt` to install the other requirements for this repository.
+4. Run `pip install -e .` to install the mlab_tfs package in an editable state. 
 
 ### Testing
 
