@@ -15,9 +15,12 @@ Jane [MASK] her dog Ralph went to the dog park.
 ____  and   ___ ___ _____ ____ __ ___ ___ ____ _
 
 ```
+
 You will make an nn.Module called Bert, which has the following type signature: `(LongTensor[batch_size, sequence_length], LongTensor[batch_size, sequence_length]) -> FloatTensor[batch_size, sequence_length, vocab_size]`
 
-It will be composed of the following modules: BertEmbedding, BertAttention, and BertMLP.
+It will be composed of the following high-level modules: BertEmbedding, BertAttention, and BertMLP.
+
+Your implementation should be about 150-300 lines of code long (not counting comments or blank lines).
 
 ## Embedding
 

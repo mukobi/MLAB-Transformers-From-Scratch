@@ -142,8 +142,8 @@ Note: Only the BERT folder is fully tested and documented, but you can also try 
 - [X] Rename files to bert_reference, bert_student
 - [X] Create starter file for you with empty stubs
 - [X] Make testing code call starter code and compare to HF BERT and maybe MLAB solution
-- [ ] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
-    - [ ] Say it should be about 200 (or 150-300) lines of code
+- [X] Update BERT readme to be more clear about what to do (e.g. no tokenizer) 
+    - [X] Say it should be about 200 (or 150-300) lines of code
 - [X] Include config or hyperparams or code to load weights
 - [X] Change TODO into a changelist to describe differences from upstream (wrote some descriptions above)
 - [X] Do BERT
