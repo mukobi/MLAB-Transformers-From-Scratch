@@ -3,7 +3,7 @@
 A documented and unit-tested repo to help you learn how to build transformer neural network models from scratch.
 
 <p align="center">
-	<img src="./transformer_architecture.png" width=37.5% alt="The Transformer model architecture from Vaswani et al. 2017"/>
+	<img src="./transformer_architecture.png" width=45% alt="The Transformer model architecture from Vaswani et al. 2017"/>
 </p>
 
 ## Introduction
