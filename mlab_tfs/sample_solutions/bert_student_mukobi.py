@@ -36,11 +36,10 @@ class LayerNorm(nn.Module):
         Norm over the last len(normalized_shape) dimensions, not simply all but the first dimension.
     """
 
-    def __init__(self, normalized_shape: int):
+    def __init__(self, normalized_shape: typing.Union[int, tuple]):
         super().__init__()
-        self.normalized_shape = normalized_shape
-        self.weight = nn.Parameter(t.ones(normalized_shape))
-        self.bias = nn.Parameter(t.zeros(normalized_shape))
+        self.weight = nn.parameter.Parameter(t.ones(normalized_shape))
+        self.bias = nn.parameter.Parameter(t.zeros(normalized_shape))
 
     def forward(self, input: TensorType[...]):
         """Apply Layer Normalization over a mini-batch of inputs."""
@@ -76,7 +75,7 @@ class Embedding(nn.Module):
 
     def __init__(self, vocab_size, embed_size):
         super().__init__()
-        self.weight = nn.Parameter(t.randn((vocab_size, embed_size)))
+        self.weight = nn.parameter.Parameter(t.randn((vocab_size, embed_size)))
 
     def forward(self, input):
         """Look up the input list of indices in the embedding matrix."""
@@ -353,7 +352,7 @@ class Bert(nn.Module):
 
     Hints:
         Assume all tokens are in the same segment/have the same token type with
-            token_type_ids = t.zeros_like(input_ids, dtype=int)
+            token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
     """
 
     def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
@@ -372,7 +371,7 @@ class Bert(nn.Module):
 
     def forward(self, input_ids):
         """Apply embedding, blocks, and token output head."""
-        token_type_ids = t.zeros_like(input_ids, dtype=int)
+        token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
         embeddings = self.embed(input_ids, token_type_ids)
         encodings = self.blocks(embeddings)
         logits = self.unembed(self.layer_norm(self.gelu(self.lin(encodings))))
@@ -427,7 +426,7 @@ class BertWithClassify(nn.Module):
 
     def forward(self, input_ids):
         """Returns a tuple of logits, classifications."""
-        token_type_ids = t.zeros_like(input_ids, dtype=int)
+        token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
         embeddings = self.embed(input_ids, token_type_ids)
         encodings = self.blocks(embeddings)
         logits = self.unembed(self.layer_norm(self.gelu(self.lin(encodings))))

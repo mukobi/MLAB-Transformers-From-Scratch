@@ -36,7 +36,7 @@ class LayerNorm(nn.Module):
         Norm over the last len(normalized_shape) dimensions, not simply all but the first dimension.
     """
 
-    def __init__(self, normalized_shape: int):
+    def __init__(self, normalized_shape: typing.Union[int, tuple]):
         super().__init__()
         self.normalized_shape = normalized_shape
         self.weight = None
@@ -311,7 +311,7 @@ class Bert(nn.Module):
 
     Hints:
         Assume all tokens are in the same segment/have the same token type with
-            token_type_ids = t.zeros_like(input_ids, dtype=int)
+            token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
     """
 
     def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
@@ -328,7 +328,7 @@ class Bert(nn.Module):
 
     def forward(self, input_ids):
         """Apply embedding, blocks, and token output head."""
-        token_type_ids = t.zeros_like(input_ids, dtype=int)
+        token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
         raise NotImplementedError
 
 
@@ -378,5 +378,5 @@ class BertWithClassify(nn.Module):
 
     def forward(self, input_ids):
         """Returns a tuple of logits, classifications."""
-        token_type_ids = t.zeros_like(input_ids, dtype=int)
+        token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
         raise NotImplementedError
