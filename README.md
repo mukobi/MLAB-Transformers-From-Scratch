@@ -147,9 +147,9 @@ Note: Only the BERT folder is fully tested and documented, but you can also try 
 - [X] Include config or hyperparams or code to load weights
 - [X] Change TODO into a changelist to describe differences from upstream (wrote some descriptions above)
 - [X] Do BERT
-- [ ] Try removing __init__.py and other files if not used
+- [X] Try removing __init__.py and other files if not used
 - [ ] Replace existing `# Tensor[...` comments with `TensorType` type hints
-- [ ] Rewrite/fix the 2 commented out tests
+- [X] Rewrite/fix the 2 commented out tests
 - [ ] Integrate tests from the other archived files
 - [X] Investigate [mocking](https://stackoverflow.com/questions/16134281/python-mocking-a-function-from-an-imported-module) to check that the student didn't use methods from torch.nn instead of implementing their own
 - [ ] Add type hints to bert_student.py
