@@ -1,3 +1,5 @@
+"""Test bert_student.py for parity with the PyTorch or local reference implementations."""
+
 import unittest
 from unittest.mock import patch
 import re
@@ -5,7 +7,7 @@ import copy
 
 import torch as t
 from torch import nn
-import transformers
+from transformers.models.auto.tokenization_auto import AutoTokenizer
 from torchtyping import TensorType
 
 from mlab_tfs.bert import bert_student, bert_reference
@@ -34,10 +36,11 @@ class MLTest(unittest.TestCase):
 
     def assert_tensors_close(self, student_out: TensorType, reference_out: TensorType, tol=1e-5):
         """Assert that two tensors have the same size and all elements are close."""
-        message = f'Mismatched shapes!\nExpected:\n{student_out.shape}\nFound:\n{reference_out.shape}'
+        message = f'Wrong shape!\nExpected:\n{student_out.shape}\nFound:\n{reference_out.shape}'
         self.assertEqual(reference_out.shape, student_out.shape, message)
 
-        message = f'Not all values are close!\nExpected:\n{itpeek(reference_out)}\nFound:\n{itpeek(student_out)}'
+        message = f'Not all values are close!\nExpected:\n{itpeek(reference_out)}'\
+            f'\nFound:\n{itpeek(student_out)}'
         self.assertTrue(t.allclose(reference_out, student_out, rtol=1e-4, atol=tol), message)
 
 
@@ -91,7 +94,7 @@ class TestBertLayerNorm(MLTest):
     def test_layer_norm_3d(self):
         """Test a 3D input tensor."""
         ln1 = bert_student.LayerNorm((10, 5))
-        ln2 = nn.LayerNorm((10, 5))
+        ln2 = nn.LayerNorm([10, 5])
         t.random.manual_seed(42)
         input = t.randn(20, 10, 5)
         self.assert_tensors_close(ln1(input), ln2(input))
@@ -109,10 +112,10 @@ class TestBertLayerNorm(MLTest):
         ln1 = bert_student.LayerNorm(10)
         ln2 = nn.LayerNorm(10)
         t.random.manual_seed(42)
-        weight = nn.Parameter(t.randn(10))
-        bias = nn.Parameter(t.randn(10))
-        ln1.weight.set = weight
-        ln2.weight.set = weight
+        weight = nn.parameter.Parameter(t.randn(10))
+        bias = nn.parameter.Parameter(t.randn(10))
+        ln1.weight = weight
+        ln2.weight = weight
         ln1.bias = bias
         ln2.bias = bias
         input = t.randn(20, 10)
@@ -374,7 +377,7 @@ class TestBertEndToEnd(MLTest):
         student = bert_student.Bert(**config)
         student.eval()
 
-        tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
         input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
 
         t.random.manual_seed(0)
@@ -397,7 +400,7 @@ class TestBertEndToEnd(MLTest):
         student = bert_student.BertWithClassify(**config)
         student.eval()
 
-        tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-cased")
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
         input_ids = tokenizer("hello there", return_tensors="pt")["input_ids"]
 
         t.random.manual_seed(0)
@@ -411,6 +414,7 @@ class TestBertEndToEnd(MLTest):
         self.assert_tensors_close(student_classification, reference_output.classification)
 
     def test_same_logits_with_pretrained_weights(self):
+        """Test bert_student.Bert for parity with bert_reference.Bert with pretrained HF weights."""
         my_bert = bert_student.Bert(
             vocab_size=28996, hidden_size=768, max_position_embeddings=512,
             type_vocab_size=2, dropout=0.1, intermediate_size=3072,
