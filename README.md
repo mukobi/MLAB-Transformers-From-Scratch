@@ -14,10 +14,10 @@ A documented and unit-tested repo to help you learn how to build transformer neu
 - Redwood Research runs a [Machine Learning for Alignment Bootcamp (MLAB)](https://www.alignmentforum.org/posts/3ouxBRRzjxarTukMW/apply-to-the-second-iteration-of-the-ml-for-alignment) in which one week consists of building BERT and GPT-2 from scratch, fine tuning them, and exploring some interpretability and training techniques.
 - This repository takes the code from [the original MLAB repository](https://github.com/redwoodresearch/mlab) and cleans it up to make it easier for others to do this independently. The key differences between this repo and the original repo are:
 	- Removed almost all the content besides the days about building BERT and GPT-2.
-	- Created a starter [student](./mlab_tfs\bert\bert_student.py) file that has all the class and function stubs for the parts you'd need to build a transformer but without the implementation.
+	- Created a starter [student](./mlab_tfs/bert/bert_student.py) file that has all the class and function stubs for the parts you'd need to build a transformer but without the implementation.
 	- Migrated the original tests into a proper [unittest](https://docs.python.org/3/library/unittest.html) test suite and added several more unit tests for various functionality.
 	- Added docstrings to document what each part should do and give hints for the trivial-but-annoying parts.
-	- Implemented a new [solution](mlab_tfs\sample_solutions\bert_student_mukobi.py) file with all the new documentation to test that all the tests pass.
+	- Implemented a new [solution](mlab_tfs/sample_solutions/bert_student_mukobi.py) file with all the new documentation to test that all the tests pass.
 	- Various renaming and reorganizing of files to make the repo a bit cleaner.
 
 ### Status
